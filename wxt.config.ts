@@ -13,14 +13,22 @@ export default defineConfig({
       48: '/icons/icon.svg',
       128: '/icons/icon.svg',
     },
+    action: {
+      default_title: 'AdFlow Inspector - Click to open side panel',
+    },
     permissions: [
       'webRequest',
       'storage',
       'tabs',
       'webNavigation',
       'scripting',
+      'alarms',
+      'sidePanel',
     ],
     host_permissions: ['<all_urls>'],
+    side_panel: {
+      default_path: 'sidepanel.html',
+    },
     devtools_page: 'devtools.html',
     web_accessible_resources: [
       {

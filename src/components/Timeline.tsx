@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useRequestStore } from '../stores/requestStore';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
 import type { EnrichedRequest, VendorCategory, Issue } from '@/lib/types';
 import { CATEGORY_COLORS, ISSUE_COLORS, ISSUE_LABELS } from '@/lib/types';
 

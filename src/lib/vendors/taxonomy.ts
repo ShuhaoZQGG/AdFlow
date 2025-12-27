@@ -7,11 +7,11 @@ export const vendors: Vendor[] = [
     name: 'Google Ad Manager',
     category: 'SSP',
     patterns: [
-      '*.doubleclick.net/*',
-      '*.googlesyndication.com/*',
-      'securepubads.g.doubleclick.net/*',
-      'pagead2.googlesyndication.com/*',
-      'tpc.googlesyndication.com/*',
+      'securepubads.g.doubleclick.net/**',
+      'pagead2.googlesyndication.com/**',
+      'tpc.googlesyndication.com/**',
+      '*.doubleclick.net/**',
+      '*.googlesyndication.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/gampad/ads', decoder: 'urlParams' },
@@ -23,10 +23,10 @@ export const vendors: Vendor[] = [
     name: 'Magnite (Rubicon)',
     category: 'SSP',
     patterns: [
-      '*.rubiconproject.com/*',
-      'fastlane.rubiconproject.com/*',
-      'prebid-server.rubiconproject.com/*',
-      '*.magnite.com/*',
+      'fastlane.rubiconproject.com/**',
+      'prebid-server.rubiconproject.com/**',
+      '*.rubiconproject.com/**',
+      '*.magnite.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/openrtb2/auction', decoder: 'openrtb' },
@@ -39,9 +39,9 @@ export const vendors: Vendor[] = [
     name: 'Index Exchange',
     category: 'SSP',
     patterns: [
-      '*.indexexchange.com/*',
-      '*.casalemedia.com/*',
-      'htlb.casalemedia.com/*',
+      'htlb.casalemedia.com/**',
+      '*.indexexchange.com/**',
+      '*.casalemedia.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/openrtb/2.5', decoder: 'openrtb' },
@@ -52,9 +52,9 @@ export const vendors: Vendor[] = [
     name: 'PubMatic',
     category: 'SSP',
     patterns: [
-      '*.pubmatic.com/*',
-      'hbopenbid.pubmatic.com/*',
-      'ads.pubmatic.com/*',
+      'hbopenbid.pubmatic.com/**',
+      'ads.pubmatic.com/**',
+      '*.pubmatic.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/openrtb2', decoder: 'openrtb' },
@@ -66,8 +66,8 @@ export const vendors: Vendor[] = [
     name: 'OpenX',
     category: 'SSP',
     patterns: [
-      '*.openx.net/*',
-      '*.servedbyopenx.com/*',
+      '*.openx.net/**',
+      '*.servedbyopenx.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/openrtb/2.5/auction', decoder: 'openrtb' },
@@ -78,10 +78,10 @@ export const vendors: Vendor[] = [
     name: 'Xandr (AppNexus)',
     category: 'SSP',
     patterns: [
-      '*.adnxs.com/*',
-      '*.appnexus.com/*',
-      'ib.adnxs.com/*',
-      'acdn.adnxs.com/*',
+      'ib.adnxs.com/**',
+      'acdn.adnxs.com/**',
+      '*.adnxs.com/**',
+      '*.appnexus.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/ut/v3/prebid', decoder: 'json' },
@@ -93,9 +93,9 @@ export const vendors: Vendor[] = [
     name: 'Sovrn',
     category: 'SSP',
     patterns: [
-      '*.lijit.com/*',
-      '*.sovrn.com/*',
-      'ap.lijit.com/*',
+      'ap.lijit.com/**',
+      '*.lijit.com/**',
+      '*.sovrn.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/rtb/bid', decoder: 'openrtb' },
@@ -106,9 +106,9 @@ export const vendors: Vendor[] = [
     name: 'TripleLift',
     category: 'SSP',
     patterns: [
-      '*.triplelift.com/*',
-      'tlx.3lift.com/*',
-      'eb2.3lift.com/*',
+      'tlx.3lift.com/**',
+      'eb2.3lift.com/**',
+      '*.triplelift.com/**',
     ],
   },
   {
@@ -116,9 +116,9 @@ export const vendors: Vendor[] = [
     name: 'Amazon TAM/UAM',
     category: 'SSP',
     patterns: [
-      '*.amazon-adsystem.com/*',
-      'aax.amazon-adsystem.com/*',
-      'c.amazon-adsystem.com/*',
+      'aax.amazon-adsystem.com/**',
+      'c.amazon-adsystem.com/**',
+      '*.amazon-adsystem.com/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/e/dtb', decoder: 'json' },
@@ -129,8 +129,8 @@ export const vendors: Vendor[] = [
     name: '33Across',
     category: 'SSP',
     patterns: [
-      '*.33across.com/*',
-      'ssc.33across.com/*',
+      'ssc.33across.com/**',
+      '*.33across.com/**',
     ],
   },
   {
@@ -138,8 +138,8 @@ export const vendors: Vendor[] = [
     name: 'Sharethrough',
     category: 'SSP',
     patterns: [
-      '*.sharethrough.com/*',
-      'btlr.sharethrough.com/*',
+      'btlr.sharethrough.com/**',
+      '*.sharethrough.com/**',
     ],
   },
   {
@@ -147,8 +147,8 @@ export const vendors: Vendor[] = [
     name: 'GumGum',
     category: 'SSP',
     patterns: [
-      '*.gumgum.com/*',
-      'g2.gumgum.com/*',
+      'g2.gumgum.com/**',
+      '*.gumgum.com/**',
     ],
   },
   {
@@ -156,8 +156,8 @@ export const vendors: Vendor[] = [
     name: 'Media.net',
     category: 'SSP',
     patterns: [
-      '*.media.net/*',
-      'contextual.media.net/*',
+      'contextual.media.net/**',
+      '*.media.net/**',
     ],
   },
   {
@@ -165,8 +165,8 @@ export const vendors: Vendor[] = [
     name: 'Smart AdServer',
     category: 'SSP',
     patterns: [
-      '*.smartadserver.com/*',
-      'www8.smartadserver.com/*',
+      'www8.smartadserver.com/**',
+      '*.smartadserver.com/**',
     ],
   },
   {
@@ -174,8 +174,8 @@ export const vendors: Vendor[] = [
     name: 'Yieldmo',
     category: 'SSP',
     patterns: [
-      '*.yieldmo.com/*',
-      'ads.yieldmo.com/*',
+      'ads.yieldmo.com/**',
+      '*.yieldmo.com/**',
     ],
   },
 
@@ -185,9 +185,9 @@ export const vendors: Vendor[] = [
     name: 'The Trade Desk',
     category: 'DSP',
     patterns: [
-      '*.thetradedesk.com/*',
-      '*.adsrvr.org/*',
-      'insight.adsrvr.org/*',
+      'insight.adsrvr.org/**',
+      '*.thetradedesk.com/**',
+      '*.adsrvr.org/**',
     ],
   },
   {
@@ -195,9 +195,9 @@ export const vendors: Vendor[] = [
     name: 'Display & Video 360',
     category: 'DSP',
     patterns: [
-      '*.doubleclick.net/ddm/*',
-      'ad.doubleclick.net/*',
-      'cm.g.doubleclick.net/*',
+      '*.doubleclick.net/ddm/**',
+      'ad.doubleclick.net/**',
+      'cm.g.doubleclick.net/**',
     ],
   },
   {
@@ -205,8 +205,8 @@ export const vendors: Vendor[] = [
     name: 'Amazon DSP',
     category: 'DSP',
     patterns: [
-      '*.amazon-adsystem.com/aax2/*',
-      's.amazon-adsystem.com/*',
+      '*.amazon-adsystem.com/aax2/**',
+      's.amazon-adsystem.com/**',
     ],
   },
   {
@@ -214,10 +214,10 @@ export const vendors: Vendor[] = [
     name: 'Criteo',
     category: 'DSP',
     patterns: [
-      '*.criteo.com/*',
-      '*.criteo.net/*',
-      'static.criteo.net/*',
-      'bidder.criteo.com/*',
+      'static.criteo.net/**',
+      'bidder.criteo.com/**',
+      '*.criteo.com/**',
+      '*.criteo.net/**',
     ],
     requestTypes: {
       bid_request: { pattern: '/cdb', decoder: 'json' },
@@ -228,8 +228,8 @@ export const vendors: Vendor[] = [
     name: 'MediaMath',
     category: 'DSP',
     patterns: [
-      '*.mathtag.com/*',
-      'pixel.mathtag.com/*',
+      'pixel.mathtag.com/**',
+      '*.mathtag.com/**',
     ],
   },
   {
@@ -237,9 +237,11 @@ export const vendors: Vendor[] = [
     name: 'Yahoo DSP',
     category: 'DSP',
     patterns: [
-      '*.advertising.com/*',
-      '*.oath.com/*',
-      '*.yahoo.com/ads/*',
+      'noa.yahoo.com/**',
+      '*.advertising.com/**',
+      '*.oath.com/**',
+      '*.yahoo.com/ads/**',
+      '*.yahooinc.com/**',
     ],
   },
 
@@ -249,9 +251,9 @@ export const vendors: Vendor[] = [
     name: 'Integral Ad Science (IAS)',
     category: 'Verification',
     patterns: [
-      '*.adsafeprotected.com/*',
-      'pixel.adsafeprotected.com/*',
-      'static.adsafeprotected.com/*',
+      'pixel.adsafeprotected.com/**',
+      'static.adsafeprotected.com/**',
+      '*.adsafeprotected.com/**',
     ],
     requestTypes: {
       viewability: { pattern: '/jload', decoder: 'urlParams' },
@@ -262,9 +264,9 @@ export const vendors: Vendor[] = [
     name: 'DoubleVerify',
     category: 'Verification',
     patterns: [
-      '*.doubleverify.com/*',
-      'cdn.doubleverify.com/*',
-      'tps.doubleverify.com/*',
+      'cdn.doubleverify.com/**',
+      'tps.doubleverify.com/**',
+      '*.doubleverify.com/**',
     ],
   },
   {
@@ -272,10 +274,10 @@ export const vendors: Vendor[] = [
     name: 'MOAT (Oracle)',
     category: 'Verification',
     patterns: [
-      '*.moatads.com/*',
-      '*.moatpixel.com/*',
-      'z.moatads.com/*',
-      'px.moatads.com/*',
+      'z.moatads.com/**',
+      'px.moatads.com/**',
+      '*.moatads.com/**',
+      '*.moatpixel.com/**',
     ],
     requestTypes: {
       viewability: { pattern: '/pixel', decoder: 'urlParams' },
@@ -286,9 +288,9 @@ export const vendors: Vendor[] = [
     name: 'Comscore',
     category: 'Verification',
     patterns: [
-      '*.scorecardresearch.com/*',
-      '*.comscore.com/*',
-      'sb.scorecardresearch.com/*',
+      'sb.scorecardresearch.com/**',
+      '*.scorecardresearch.com/**',
+      '*.comscore.com/**',
     ],
   },
   {
@@ -296,8 +298,8 @@ export const vendors: Vendor[] = [
     name: 'Grapeshot (Oracle)',
     category: 'Verification',
     patterns: [
-      '*.grapeshot.co.uk/*',
-      '*.gscontxt.net/*',
+      '*.grapeshot.co.uk/**',
+      '*.gscontxt.net/**',
     ],
   },
   {
@@ -305,8 +307,8 @@ export const vendors: Vendor[] = [
     name: 'HUMAN (White Ops)',
     category: 'Verification',
     patterns: [
-      '*.whiteops.com/*',
-      '*.humansecurity.com/*',
+      '*.whiteops.com/**',
+      '*.humansecurity.com/**',
     ],
   },
 
@@ -316,9 +318,9 @@ export const vendors: Vendor[] = [
     name: 'Nielsen',
     category: 'Measurement',
     patterns: [
-      '*.nielsen.com/*',
-      '*.imrworldwide.com/*',
-      'secure-us.imrworldwide.com/*',
+      'secure-us.imrworldwide.com/**',
+      '*.nielsen.com/**',
+      '*.imrworldwide.com/**',
     ],
   },
   {
@@ -326,8 +328,8 @@ export const vendors: Vendor[] = [
     name: 'Flashtalking',
     category: 'Measurement',
     patterns: [
-      '*.flashtalking.com/*',
-      'servedby.flashtalking.com/*',
+      'servedby.flashtalking.com/**',
+      '*.flashtalking.com/**',
     ],
   },
   {
@@ -335,8 +337,8 @@ export const vendors: Vendor[] = [
     name: 'Innovid',
     category: 'Measurement',
     patterns: [
-      '*.innovid.com/*',
-      's.innovid.com/*',
+      's.innovid.com/**',
+      '*.innovid.com/**',
     ],
   },
   {
@@ -344,8 +346,8 @@ export const vendors: Vendor[] = [
     name: 'Sizmek',
     category: 'Measurement',
     patterns: [
-      '*.sizmek.com/*',
-      'bs.serving-sys.com/*',
+      'bs.serving-sys.com/**',
+      '*.sizmek.com/**',
     ],
   },
   {
@@ -353,9 +355,9 @@ export const vendors: Vendor[] = [
     name: 'Quantcast',
     category: 'Measurement',
     patterns: [
-      '*.quantserve.com/*',
-      '*.quantcount.com/*',
-      'pixel.quantserve.com/*',
+      'pixel.quantserve.com/**',
+      '*.quantserve.com/**',
+      '*.quantcount.com/**',
     ],
   },
 
@@ -365,7 +367,7 @@ export const vendors: Vendor[] = [
     name: 'Prebid.js',
     category: 'Prebid',
     patterns: [
-      '*/prebid*.js*',
+      '**/prebid*.js**',
     ],
   },
   {
@@ -373,8 +375,8 @@ export const vendors: Vendor[] = [
     name: 'Prebid Server',
     category: 'Prebid',
     patterns: [
-      '*/openrtb2/auction*',
-      '*/pbs/v1/openrtb2/auction*',
+      '**/openrtb2/auction**',
+      '**/pbs/v1/openrtb2/auction**',
     ],
     requestTypes: {
       bid_request: { pattern: '/openrtb2/auction', decoder: 'openrtb' },
@@ -387,9 +389,9 @@ export const vendors: Vendor[] = [
     name: 'LiveRamp',
     category: 'Identity',
     patterns: [
-      '*.rlcdn.com/*',
-      '*.liveramp.com/*',
-      'idsync.rlcdn.com/*',
+      'idsync.rlcdn.com/**',
+      '*.rlcdn.com/**',
+      '*.liveramp.com/**',
     ],
     requestTypes: {
       sync: { pattern: '/idsync', decoder: 'urlParams' },
@@ -400,8 +402,8 @@ export const vendors: Vendor[] = [
     name: 'ID5',
     category: 'Identity',
     patterns: [
-      '*.id5-sync.com/*',
-      'id5-sync.com/*',
+      '*.id5-sync.com/**',
+      'id5-sync.com/**',
     ],
   },
   {
@@ -409,8 +411,8 @@ export const vendors: Vendor[] = [
     name: 'Unified ID 2.0',
     category: 'Identity',
     patterns: [
-      '*.uidapi.com/*',
-      'prod.uidapi.com/*',
+      'prod.uidapi.com/**',
+      '*.uidapi.com/**',
     ],
   },
   {
@@ -418,9 +420,9 @@ export const vendors: Vendor[] = [
     name: 'Lotame',
     category: 'Identity',
     patterns: [
-      '*.crwdcntrl.net/*',
-      '*.lotame.com/*',
-      'tags.crwdcntrl.net/*',
+      'tags.crwdcntrl.net/**',
+      '*.crwdcntrl.net/**',
+      '*.lotame.com/**',
     ],
   },
   {
@@ -428,8 +430,8 @@ export const vendors: Vendor[] = [
     name: 'Tapad',
     category: 'Identity',
     patterns: [
-      '*.tapad.com/*',
-      'pixel.tapad.com/*',
+      'pixel.tapad.com/**',
+      '*.tapad.com/**',
     ],
   },
 
@@ -439,8 +441,8 @@ export const vendors: Vendor[] = [
     name: 'Cloudflare',
     category: 'CDN',
     patterns: [
-      '*.cloudflare.com/*',
-      '*.cloudflareinsights.com/*',
+      '*.cloudflare.com/**',
+      '*.cloudflareinsights.com/**',
     ],
   },
   {
@@ -448,9 +450,9 @@ export const vendors: Vendor[] = [
     name: 'Akamai',
     category: 'CDN',
     patterns: [
-      '*.akamaized.net/*',
-      '*.akamaihd.net/*',
-      '*.akamaitechnologies.com/*',
+      '*.akamaized.net/**',
+      '*.akamaihd.net/**',
+      '*.akamaitechnologies.com/**',
     ],
   },
   {
@@ -458,8 +460,8 @@ export const vendors: Vendor[] = [
     name: 'Fastly',
     category: 'CDN',
     patterns: [
-      '*.fastly.net/*',
-      '*.fastlylabs.com/*',
+      '*.fastly.net/**',
+      '*.fastlylabs.com/**',
     ],
   },
   {
@@ -467,7 +469,7 @@ export const vendors: Vendor[] = [
     name: 'AWS CloudFront',
     category: 'CDN',
     patterns: [
-      '*.cloudfront.net/*',
+      '*.cloudfront.net/**',
     ],
   },
 
@@ -477,8 +479,8 @@ export const vendors: Vendor[] = [
     name: 'Celtra',
     category: 'AdServer',
     patterns: [
-      '*.celtra.com/*',
-      'ads.celtra.com/*',
+      'ads.celtra.com/**',
+      '*.celtra.com/**',
     ],
   },
   {
@@ -486,8 +488,8 @@ export const vendors: Vendor[] = [
     name: 'Adform',
     category: 'AdServer',
     patterns: [
-      '*.adform.net/*',
-      'track.adform.net/*',
+      'track.adform.net/**',
+      '*.adform.net/**',
     ],
   },
   {
@@ -495,8 +497,8 @@ export const vendors: Vendor[] = [
     name: 'Eyeota',
     category: 'Other',
     patterns: [
-      '*.eyeota.net/*',
-      'ps.eyeota.net/*',
+      'ps.eyeota.net/**',
+      '*.eyeota.net/**',
     ],
   },
   {
@@ -504,26 +506,27 @@ export const vendors: Vendor[] = [
     name: 'BlueKai (Oracle)',
     category: 'Other',
     patterns: [
-      '*.bluekai.com/*',
-      'tags.bluekai.com/*',
+      'tags.bluekai.com/**',
+      '*.bluekai.com/**',
     ],
   },
+  // === Native Advertising / Content Discovery ===
   {
     id: 'outbrain',
     name: 'Outbrain',
-    category: 'Other',
+    category: 'Native',
     patterns: [
-      '*.outbrain.com/*',
-      '*.outbrainstatic.com/*',
+      '*.outbrain.com/**',
+      '*.outbrainstatic.com/**',
     ],
   },
   {
     id: 'taboola',
     name: 'Taboola',
-    category: 'Other',
+    category: 'Native',
     patterns: [
-      '*.taboola.com/*',
-      '*.taboolasyndication.com/*',
+      '*.taboola.com/**',
+      '*.taboolasyndication.com/**',
     ],
   },
 ];

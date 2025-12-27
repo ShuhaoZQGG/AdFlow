@@ -7,6 +7,28 @@ import type { EnrichedRequest, MessageType, Issue, SlotInfo } from '@/lib/types'
 export default defineBackground(async () => {
   console.log('AdFlow Inspector: Background service worker started');
 
+  // Configure side panel to open on action click (icon click)
+  if (chrome.sidePanel) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
+      console.warn('[AdFlow BG] Could not set side panel behavior:', err);
+    });
+  }
+
+  // Service worker keep-alive mechanism
+  // Chrome terminates service workers after ~30s of inactivity
+  // Use alarms to keep it responsive (minimum interval is 1 minute in MV3)
+  const KEEP_ALIVE_ALARM = 'adflow-keep-alive';
+
+  // Set up keep-alive alarm
+  chrome.alarms?.create(KEEP_ALIVE_ALARM, { periodInMinutes: 0.5 });
+
+  chrome.alarms?.onAlarm.addListener((alarm) => {
+    if (alarm.name === KEEP_ALIVE_ALARM) {
+      // Just log to keep service worker active
+      console.debug('[AdFlow BG] Keep-alive ping');
+    }
+  });
+
   // Store requests per tab, keyed by Chrome's requestId
   const requestsByTab = new Map<number, Map<string, EnrichedRequest>>();
   const pageLoadTimes = new Map<number, number>();
@@ -171,16 +193,21 @@ export default defineBackground(async () => {
   });
 
   // Inject content scripts into all existing tabs on extension start/reload
-  try {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-      if (tab.id && tab.url && !tab.url.startsWith('chrome')) {
-        ensureContentScriptInjected(tab.id);
-      }
+  // IMPORTANT: Don't await this - run in background to avoid blocking service worker startup
+  (async () => {
+    try {
+      const tabs = await chrome.tabs.query({});
+      // Parallelize injection instead of sequential
+      await Promise.allSettled(
+        tabs
+          .filter(tab => tab.id && tab.url && !tab.url.startsWith('chrome'))
+          .map(tab => ensureContentScriptInjected(tab.id!))
+      );
+      console.log('[AdFlow BG] Initial content script injection complete');
+    } catch (err) {
+      console.debug('[AdFlow BG] Could not inject into existing tabs:', err);
     }
-  } catch (err) {
-    console.debug('[AdFlow BG] Could not inject into existing tabs:', err);
-  }
+  })();
 
   // Intercept requests before they're sent
   chrome.webRequest.onBeforeRequest.addListener(
@@ -399,11 +426,14 @@ export default defineBackground(async () => {
           }
         }
 
-        // Broadcast to DevTools panel
+        // Broadcast to DevTools panel with tabId so panel can filter
         console.log('[AdFlow BG] Broadcasting SLOT_MAPPINGS_UPDATED to DevTools panel');
         broadcastToDevTools({
           type: 'SLOT_MAPPINGS_UPDATED',
-          payload: message.payload,
+          payload: {
+            ...message.payload,
+            tabId,
+          },
         });
       }
       return;

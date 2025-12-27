@@ -1,6 +1,6 @@
 import React, { useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRequestStore } from '../stores/requestStore';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
 import VendorBadge from './VendorBadge';
 import type { EnrichedRequest, Issue, IssueType } from '@/lib/types';
 import { ISSUE_COLORS, ISSUE_LABELS } from '@/lib/types';

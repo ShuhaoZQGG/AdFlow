@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useRequestStore, initializeMessageListener, fetchInitialRequests, fetchInitialSlotMappings, initializeNetworkListener, reinitializeForCurrentTab } from './stores/requestStore';
+import React, { useEffect, useState } from 'react';
+import { useRequestStore, initializeSidepanel, initializeTabListener } from './stores/requestStore';
 import FilterBar from '@/components/FilterBar';
 import RequestList from '@/components/RequestList';
 import RequestDetail from '@/components/RequestDetail';
@@ -17,14 +17,11 @@ type AITab = 'summary' | 'ordering' | 'discrepancies';
 export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isInitialized, setIsInitialized] = useState(false);
-  const [issuePanelCollapsed, setIssuePanelCollapsed] = useState(false);
+  const [issuePanelCollapsed, setIssuePanelCollapsed] = useState(true);
   const [aiPanelCollapsed, setAiPanelCollapsed] = useState(true);
   const [chatCollapsed, setChatCollapsed] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeAITab, setActiveAITab] = useState<AITab>('summary');
-
-  // Track the initial tabId to detect tab switches
-  const initialTabIdRef = useRef<number | null>(null);
 
   const {
     selectedRequest,
@@ -46,41 +43,15 @@ export default function App() {
   const flows = getAdFlows();
 
   useEffect(() => {
-    // Store the initial tabId
-    initialTabIdRef.current = chrome.devtools.inspectedWindow.tabId;
-
-    // Initialize message listener and fetch initial data
-    initializeMessageListener();
-    initializeNetworkListener();
-    Promise.all([
-      fetchInitialRequests(),
-      fetchInitialSlotMappings(),
-    ]).then(() => {
-      setIsInitialized(true);
+    // Initialize sidepanel with current tab
+    initializeSidepanel().then((tabId) => {
+      if (tabId) {
+        setIsInitialized(true);
+      }
     });
 
-    // Listen for navigation events in the inspected window
-    // This handles page refreshes and navigations within the same tab
-    const handleNavigation = (url: string) => {
-      // Check if the tabId has changed (can happen in some DevTools configurations)
-      const currentTabId = chrome.devtools.inspectedWindow.tabId;
-      if (initialTabIdRef.current !== null && initialTabIdRef.current !== currentTabId) {
-        // Tab changed, reinitialize
-        initialTabIdRef.current = currentTabId;
-        reinitializeForCurrentTab();
-      }
-      // Otherwise, the background script's PAGE_NAVIGATED message will handle clearing
-    };
-
-    if (chrome.devtools?.inspectedWindow?.onNavigated) {
-      chrome.devtools.inspectedWindow.onNavigated.addListener(handleNavigation);
-    }
-
-    return () => {
-      if (chrome.devtools?.inspectedWindow?.onNavigated) {
-        chrome.devtools.inspectedWindow.onNavigated.removeListener(handleNavigation);
-      }
-    };
+    // Listen for tab changes
+    initializeTabListener();
   }, []);
 
   const handleClear = () => {
@@ -88,20 +59,18 @@ export default function App() {
     clearRequests();
   };
 
-  const hasAIContent = sessionSummary || discrepancyPredictions || orderingAnalysis;
-
   return (
     <div className="h-screen flex flex-col bg-white dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#252526]">
-        <div className="flex items-center gap-3">
-          <h1 className="font-semibold text-sm">AdFlow Inspector</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-semibold text-sm">AdFlow</h1>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {requests.length} request{requests.length !== 1 ? 's' : ''}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* View mode toggle */}
           <div className="flex rounded overflow-hidden border border-gray-300 dark:border-gray-600">
             <button
@@ -111,6 +80,7 @@ export default function App() {
                   ? 'bg-blue-500 text-white'
                   : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
+              title="List View"
             >
               List
             </button>
@@ -121,6 +91,7 @@ export default function App() {
                   ? 'bg-blue-500 text-white'
                   : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
+              title="Flow View"
             >
               Flow
             </button>
@@ -131,8 +102,9 @@ export default function App() {
                   ? 'bg-blue-500 text-white'
                   : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
+              title="Timeline View"
             >
-              Timeline
+              Time
             </button>
           </div>
 
@@ -148,6 +120,7 @@ export default function App() {
           <button
             onClick={handleClear}
             className="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+            title="Clear requests"
           >
             Clear
           </button>
@@ -169,7 +142,7 @@ export default function App() {
       {/* Filter bar */}
       <FilterBar />
 
-      {/* Issue panel */}
+      {/* Issue panel - collapsed by default in sidepanel */}
       <IssuePanel
         collapsed={issuePanelCollapsed}
         onToggle={() => setIssuePanelCollapsed(!issuePanelCollapsed)}
@@ -193,17 +166,20 @@ export default function App() {
       />
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Request list or timeline */}
-        <div className={`flex-1 min-w-0 overflow-auto ${selectedRequest ? 'w-1/2' : 'w-full'}`}>
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Request list/flow/timeline - always takes full width in sidepanel */}
+        <div className={`${selectedRequest ? 'h-1/2' : 'flex-1'} overflow-auto`}>
           {!isInitialized ? (
             <div className="flex items-center justify-center h-full text-gray-500">
-              Loading...
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm">Loading...</span>
+              </div>
             </div>
           ) : requests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-4">
               <svg
-                className="w-12 h-12 mb-3 text-gray-300 dark:text-gray-600"
+                className="w-10 h-10 mb-2 text-gray-300 dark:text-gray-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -215,8 +191,8 @@ export default function App() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p className="text-sm">No network requests captured</p>
-              <p className="text-xs mt-1">Navigate or refresh the page to see requests</p>
+              <p className="text-sm text-center">No ad requests captured</p>
+              <p className="text-xs mt-1 text-center">Navigate to a page with ads to see requests</p>
             </div>
           ) : viewMode === 'list' ? (
             <RequestList requests={requests} />
@@ -227,9 +203,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Request detail panel */}
+        {/* Request detail panel - shown below in sidepanel */}
         {selectedRequest && (
-          <div className="w-1/2 border-l border-gray-200 dark:border-gray-700 overflow-auto">
+          <div className="h-1/2 border-t border-gray-200 dark:border-gray-700 overflow-auto">
             <RequestDetail request={selectedRequest} />
           </div>
         )}

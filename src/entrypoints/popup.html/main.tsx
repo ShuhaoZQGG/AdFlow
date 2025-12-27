@@ -2,13 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
-import { RequestStoreProvider } from '@/contexts/RequestStoreContext';
-import { useRequestStore } from './stores/requestStore';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RequestStoreProvider store={useRequestStore}>
-      <App />
-    </RequestStoreProvider>
+    <App />
   </React.StrictMode>
 );

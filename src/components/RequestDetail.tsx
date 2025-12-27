@@ -3,7 +3,7 @@ import Markdown from 'react-markdown';
 import type { EnrichedRequest, DecodedPayload, Issue, AIExplanation } from '@/lib/types';
 import VendorBadge from './VendorBadge';
 import { CATEGORY_COLORS, ISSUE_LABELS, ISSUE_COLORS } from '@/lib/types';
-import { useRequestStore } from '../stores/requestStore';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
 
 // Copy to clipboard with fallback for DevTools context
 function copyToClipboard(text: string): Promise<boolean> {
@@ -162,13 +162,35 @@ export default function RequestDetail({ request }: RequestDetailProps) {
   // Check if we can highlight this request (has elementId or slotId)
   const canHighlight = !!(request.elementId || request.slotId);
 
+  // Get current tab ID - works in both DevTools and side panel contexts
+  const getCurrentTabId = useCallback(async (): Promise<number | null> => {
+    // Try DevTools context first
+    if (chrome.devtools?.inspectedWindow?.tabId) {
+      return chrome.devtools.inspectedWindow.tabId;
+    }
+    // Fall back to querying active tab (for side panel)
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return tab?.id ?? null;
+    } catch (e) {
+      console.warn('[AdFlow] Failed to get current tab:', e);
+      return null;
+    }
+  }, []);
+
   // Handle highlight element in page
   const handleHighlight = useCallback(async () => {
     if (!canHighlight) return;
 
     setHighlightStatus('finding');
     try {
-      const tabId = chrome.devtools.inspectedWindow.tabId;
+      const tabId = await getCurrentTabId();
+      if (!tabId) {
+        setHighlightStatus('not-found');
+        setTimeout(() => setHighlightStatus('idle'), 3000);
+        return;
+      }
+
       const response = await chrome.runtime.sendMessage({
         type: 'HIGHLIGHT_ELEMENT',
         tabId,
@@ -187,7 +209,7 @@ export default function RequestDetail({ request }: RequestDetailProps) {
       setHighlightStatus('not-found');
       setTimeout(() => setHighlightStatus('idle'), 3000);
     }
-  }, [request.elementId, request.slotId, canHighlight]);
+  }, [request.elementId, request.slotId, canHighlight, getCurrentTabId]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

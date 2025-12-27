@@ -8,6 +8,7 @@ export type VendorCategory =
   | 'AdServer'
   | 'Prebid'
   | 'Identity'
+  | 'Native'
   | 'Other';
 
 // Request types commonly seen in adtech
@@ -143,6 +144,7 @@ export const CATEGORY_COLORS: Record<VendorCategory, string> = {
   AdServer: '#EF4444',
   Prebid: '#EC4899',
   Identity: '#06B6D4',
+  Native: '#F97316',
   Other: '#9CA3AF',
 };
 

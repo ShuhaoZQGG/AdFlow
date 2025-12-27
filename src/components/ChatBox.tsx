@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Markdown from 'react-markdown';
-import { useRequestStore } from '../stores/requestStore';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
 import type { ChatMessage } from '@/lib/ai';
 
 // Markdown component styles for chat messages

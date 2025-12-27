@@ -1,9 +1,9 @@
 import { create } from 'zustand';
-import type { EnrichedRequest, FilterState, VendorCategory, RequestType, MessageType, IssueType, AIExplanation, AdFlow, DecodedPayload, SlotInfo } from '@/lib/types';
+import type { EnrichedRequest, FilterState, VendorCategory, RequestType, MessageType, IssueType, AIExplanation, AdFlow, SlotInfo } from '@/lib/types';
 import { groupRequestsIntoFlows } from '@/lib/adflow';
 import * as aiService from '@/lib/ai';
 import type { ChatMessage } from '@/lib/ai';
-import { decodeRequestBody } from '@/lib/decoders';
+import type { RequestStore } from '@/stores/types';
 
 // Helper to create a cache key from filtered request IDs and filters
 function createCacheKey(requestIds: string[], filters: FilterState): string {
@@ -12,69 +12,15 @@ function createCacheKey(requestIds: string[], filters: FilterState): string {
   return `${filterStr}|${requestStr}`;
 }
 
-interface RequestStore {
-  requests: EnrichedRequest[];
-  selectedRequest: EnrichedRequest | null;
-  filters: FilterState;
-
-  // Slot mappings from GAM/Prebid
-  slotMappings: SlotInfo[];
-
-  // AI State - all responses stored as raw markdown text
-  aiExplanations: Record<string, AIExplanation>;
-  sessionSummary: string | null;
-  discrepancyPredictions: string | null;
-  orderingAnalysis: string | null;
-  isAnalyzing: boolean;
-  aiError: string | null;
-  streamingText: string;
-
-  // Chat state
-  chatMessages: ChatMessage[];
-  chatStreamingText: string;
-  isChatting: boolean;
-  chatError: string | null;
+interface SidepanelRequestStore extends RequestStore {
+  // Additional sidepanel-specific state
+  currentTabId: number | null;
+  setCurrentTabId: (tabId: number | null) => void;
 
   // Cache keys for AI results
   sessionSummaryCacheKey: string | null;
   orderingAnalysisCacheKey: string | null;
   discrepanciesCacheKey: string | null;
-
-  // Actions
-  addRequest: (request: EnrichedRequest) => void;
-  updateRequest: (id: string, updates: Partial<EnrichedRequest>) => void;
-  setRequests: (requests: EnrichedRequest[]) => void;
-  selectRequest: (request: EnrichedRequest | null) => void;
-  clearRequests: () => void;
-  setSlotMappings: (slots: SlotInfo[]) => void;
-
-  // Filter actions
-  setFilters: (filters: Partial<FilterState>) => void;
-  toggleVendorFilter: (vendorId: string) => void;
-  toggleCategoryFilter: (category: VendorCategory) => void;
-  toggleRequestTypeFilter: (type: RequestType) => void;
-  toggleStatusFilter: (status: '2xx' | '3xx' | '4xx' | '5xx' | 'error') => void;
-  toggleIssueTypeFilter: (issueType: IssueType) => void;
-  toggleShowOnlyIssues: () => void;
-  setSearchQuery: (query: string) => void;
-  setPlacementFilter: (elementId: string | undefined) => void;
-  resetFilters: () => void;
-
-  // AI Actions
-  explainRequest: (request: EnrichedRequest) => Promise<void>;
-  analyzeSession: () => Promise<void>;
-  analyzeOrdering: () => Promise<void>;
-  predictDiscrepancies: () => Promise<void>;
-  clearAIState: () => void;
-
-  // Chat Actions
-  sendChatMessage: (message: string) => Promise<void>;
-  clearChat: () => void;
-
-  // Computed
-  filteredRequests: () => EnrichedRequest[];
-  getIssueCounts: () => { total: number; byType: Record<IssueType, number> };
-  getAdFlows: () => AdFlow[];
 }
 
 const initialFilters: FilterState = {
@@ -87,10 +33,11 @@ const initialFilters: FilterState = {
   showOnlyIssues: false,
 };
 
-export const useRequestStore = create<RequestStore>((set, get) => ({
+export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
   requests: [],
   selectedRequest: null,
   filters: initialFilters,
+  currentTabId: null,
 
   // Slot mappings
   slotMappings: [],
@@ -114,6 +61,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   sessionSummaryCacheKey: null,
   orderingAnalysisCacheKey: null,
   discrepanciesCacheKey: null,
+
+  setCurrentTabId: (tabId) => set({ currentTabId: tabId }),
 
   addRequest: (request) =>
     set((state) => {
@@ -296,14 +245,11 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
           // Match by elementId (exact)
           const matchesElementId = request.elementId === selectedSlot.elementId;
 
-          // Match by slotId - handle various formats:
-          // GAM slots: "/1234567/homepage/leaderboard"
-          // Request slotId might be full path or partial
+          // Match by slotId - handle various formats
           const matchesSlotId = request.slotId && (
             request.slotId === selectedSlot.slotId ||
             request.slotId.includes(selectedSlot.slotId) ||
             selectedSlot.slotId.includes(request.slotId) ||
-            // Match last segment of GAM path (e.g., "leaderboard")
             request.slotId.split('/').pop() === selectedSlot.slotId.split('/').pop()
           );
 
@@ -311,7 +257,6 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
           const urlMatchesSlot =
             request.url.includes(encodeURIComponent(selectedSlot.slotId)) ||
             request.url.includes(selectedSlot.elementId) ||
-            // Check for iu parameter (GAM ad unit)
             request.url.includes(`iu=${encodeURIComponent(selectedSlot.slotId)}`) ||
             request.url.includes(`iu=${selectedSlot.slotId.replace(/\//g, '%2F')}`);
 
@@ -546,20 +491,27 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   },
 }));
 
+// Get current active tab ID
+export async function getCurrentTabId(): Promise<number | null> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab?.id ?? null;
+  } catch (e) {
+    console.error('Failed to get current tab:', e);
+    return null;
+  }
+}
+
 // Set up message listener for background script communication
 export function initializeMessageListener() {
   const store = useRequestStore.getState();
-  // Get tabId dynamically each time instead of caching it
-  // This ensures we always compare against the CURRENT inspected tab
-  const getCurrentTabId = () => chrome.devtools.inspectedWindow.tabId;
 
   chrome.runtime.onMessage.addListener((message: MessageType) => {
-    const inspectedTabId = getCurrentTabId();
+    const currentTabId = store.currentTabId;
 
     // Filter messages by tabId for tab-specific messages
-    if (message.payload?.tabId !== undefined && message.payload.tabId !== inspectedTabId) {
+    if (message.payload?.tabId !== undefined && message.payload.tabId !== currentTabId) {
       // Message is for a different tab, ignore it
-      // Exception: allow messages without tabId (like CLEAR_REQUESTS)
       if (message.type !== 'CLEAR_REQUESTS') {
         return;
       }
@@ -615,9 +567,7 @@ export function initializeMessageListener() {
 }
 
 // Fetch initial requests for current tab
-export async function fetchInitialRequests() {
-  const tabId = chrome.devtools.inspectedWindow.tabId;
-
+export async function fetchInitialRequests(tabId: number) {
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'GET_REQUESTS',
@@ -633,9 +583,7 @@ export async function fetchInitialRequests() {
 }
 
 // Fetch initial slot mappings for current tab
-export async function fetchInitialSlotMappings() {
-  const tabId = chrome.devtools.inspectedWindow.tabId;
-
+export async function fetchInitialSlotMappings(tabId: number) {
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'GET_SLOT_MAPPINGS',
@@ -650,79 +598,35 @@ export async function fetchInitialSlotMappings() {
   }
 }
 
-// Reinitialize data for a new/changed tab
-export async function reinitializeForCurrentTab() {
-  const store = useRequestStore.getState();
-  store.clearRequests();
-  store.clearAIState();
-  await Promise.all([
-    fetchInitialRequests(),
-    fetchInitialSlotMappings(),
-  ]);
+// Initialize sidepanel with current tab
+export async function initializeSidepanel() {
+  const tabId = await getCurrentTabId();
+  if (tabId) {
+    useRequestStore.getState().setCurrentTabId(tabId);
+    initializeMessageListener();
+    await Promise.all([
+      fetchInitialRequests(tabId),
+      fetchInitialSlotMappings(tabId),
+    ]);
+  }
+  return tabId;
 }
 
-// Initialize network listener to capture response bodies
-// Uses chrome.devtools.network API which provides access to response content
-export function initializeNetworkListener() {
-  if (!chrome.devtools?.network) {
-    console.warn('chrome.devtools.network API not available');
-    return;
-  }
-
-  chrome.devtools.network.onRequestFinished.addListener((harEntry) => {
+// Listen for tab activation changes
+export function initializeTabListener() {
+  chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const store = useRequestStore.getState();
-    const requestUrl = harEntry.request.url;
+    const newTabId = activeInfo.tabId;
 
-    // Find matching request by URL (webRequest and devtools.network use different IDs)
-    // Match the most recent uncompleted request with this URL, or the latest completed one
-    const matchingRequest = store.requests.find(r =>
-      r.url === requestUrl && !r.responsePayload
-    );
-
-    if (!matchingRequest) {
-      return;
+    if (newTabId !== store.currentTabId) {
+      // Clear data and reinitialize for the new tab
+      store.clearRequests();
+      store.clearAIState();
+      store.setCurrentTabId(newTabId);
+      await Promise.all([
+        fetchInitialRequests(newTabId),
+        fetchInitialSlotMappings(newTabId),
+      ]);
     }
-
-    // Get the response content
-    harEntry.getContent((content, encoding) => {
-      if (!content || content.length === 0) {
-        return;
-      }
-
-      // Get content type from response headers
-      const contentTypeHeader = harEntry.response.headers.find(
-        h => h.name.toLowerCase() === 'content-type'
-      );
-      const contentType = contentTypeHeader?.value || '';
-
-      // Decode the response body
-      let responsePayload: DecodedPayload | undefined;
-
-      try {
-        // Handle base64-encoded binary content
-        if (encoding === 'base64') {
-          try {
-            const decoded = atob(content);
-            responsePayload = decodeRequestBody(decoded, contentType);
-          } catch {
-            // If base64 decoding fails, treat as text
-            responsePayload = decodeRequestBody(content, contentType);
-          }
-        } else {
-          responsePayload = decodeRequestBody(content, contentType);
-        }
-      } catch (e) {
-        console.warn('Failed to decode response body:', e);
-        responsePayload = {
-          type: 'text',
-          data: content.substring(0, 10000), // Limit size
-          raw: content.substring(0, 10000),
-        };
-      }
-
-      if (responsePayload) {
-        store.updateRequest(matchingRequest.id, { responsePayload });
-      }
-    });
   });
 }

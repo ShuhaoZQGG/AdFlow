@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useRequestStore } from '../stores/requestStore';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
 import VendorBadge from './VendorBadge';
 import type { EnrichedRequest, AdFlow, AdFlowStage } from '@/lib/types';
 import { AD_FLOW_STAGE_META, ISSUE_LABELS } from '@/lib/types';

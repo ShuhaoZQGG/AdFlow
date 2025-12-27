@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useRequestStore } from '../stores/requestStore';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
 import { CategoryBadge } from './VendorBadge';
 import type { VendorCategory, RequestType, IssueType, Vendor } from '@/lib/types';
 import { ISSUE_LABELS } from '@/lib/types';
@@ -40,9 +40,27 @@ interface VendorsByCategory {
   vendors: Vendor[];
 }
 
+// Get the current tab ID - works in both DevTools and side panel contexts
+async function getCurrentTabId(): Promise<number | null> {
+  // Try DevTools context first
+  if (chrome.devtools?.inspectedWindow?.tabId) {
+    return chrome.devtools.inspectedWindow.tabId;
+  }
+  // Fall back to querying active tab (for side panel)
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab?.id ?? null;
+  } catch (e) {
+    console.warn('[AdFlow] Failed to get current tab:', e);
+    return null;
+  }
+}
+
 // Highlight the ad slot element on the page
-function highlightAdSlot(elementId: string, slotId?: string) {
-  const tabId = chrome.devtools.inspectedWindow.tabId;
+async function highlightAdSlot(elementId: string, slotId?: string) {
+  const tabId = await getCurrentTabId();
+  if (!tabId) return;
+
   chrome.runtime.sendMessage({
     type: 'HIGHLIGHT_ELEMENT',
     tabId,
@@ -53,8 +71,10 @@ function highlightAdSlot(elementId: string, slotId?: string) {
 }
 
 // Clear highlight from the page
-function clearAdSlotHighlight() {
-  const tabId = chrome.devtools.inspectedWindow.tabId;
+async function clearAdSlotHighlight() {
+  const tabId = await getCurrentTabId();
+  if (!tabId) return;
+
   chrome.runtime.sendMessage({
     type: 'CLEAR_HIGHLIGHT',
     tabId,
