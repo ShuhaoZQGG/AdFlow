@@ -1,0 +1,9 @@
+name = "adflow-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Environment variables (set via wrangler secret)
+# Run: wrangler secret put CLAUDE_API_KEY
+
+[vars]
+ALLOWED_ORIGINS = "chrome-extension://*"
