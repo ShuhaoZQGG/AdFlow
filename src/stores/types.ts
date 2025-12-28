@@ -53,6 +53,7 @@ export interface RequestStore {
   startElementPicker: () => Promise<void>;
   stopElementPicker: () => Promise<void>;
   clearInspectedElement: () => void;
+  clearAllInspectedElements: () => void;
 
   // AI Actions
   explainRequest: (request: EnrichedRequest) => Promise<void>;

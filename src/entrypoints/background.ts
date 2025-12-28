@@ -637,6 +637,23 @@ export default defineBackground(async () => {
       return true;
     }
 
+    if (message.type === 'CLEAR_ALL_HIGHLIGHTS' && 'tabId' in message && message.tabId) {
+      // Clear all highlights (including element picker) in all frames
+      chrome.webNavigation.getAllFrames({ tabId: message.tabId }, (frames) => {
+        if (frames) {
+          frames.forEach((frame) => {
+            chrome.tabs.sendMessage(
+              message.tabId!,
+              { type: 'CLEAR_ALL_HIGHLIGHTS' },
+              { frameId: frame.frameId }
+            );
+          });
+        }
+      });
+      sendResponse({ success: true });
+      return true;
+    }
+
     // Clear inspected element (used when starting new picker)
     if (message.type === 'CLEAR_INSPECTED_ELEMENT') {
       // Broadcast to DevTools panel to clear inspected element

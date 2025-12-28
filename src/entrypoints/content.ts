@@ -93,6 +93,9 @@ export default defineContentScript({
       } else if (message.type === 'CLEAR_HIGHLIGHT') {
         clearHighlight();
         sendResponse({ success: true });
+      } else if (message.type === 'CLEAR_ALL_HIGHLIGHTS') {
+        clearAllHighlights();
+        sendResponse({ success: true });
       } else if (message.type === 'GET_SLOT_MAPPINGS') {
         sendResponse({ slots: slotMappings });
       } else if (message.type === 'START_ELEMENT_PICKER') {
@@ -829,13 +832,57 @@ export default defineContentScript({
       });
     }
 
-    // Clear current highlight
+    // Clear current highlight (for slot highlighting only)
     function clearHighlight() {
       if (currentHighlightedElement) {
         currentHighlightedElement.classList.remove('adflow-highlight', 'adflow-highlight-slot');
         currentHighlightedElement = null;
       }
       // Don't remove styles - they might be needed for other highlights
+      document.getElementById('adflow-highlight-label')?.remove();
+    }
+
+    // Clear all highlights including element picker highlights
+    // This is a dedicated function to avoid circular dependencies and coupling issues
+    function clearAllHighlights() {
+      // Clear slot highlight
+      if (currentHighlightedElement) {
+        currentHighlightedElement.classList.remove('adflow-highlight', 'adflow-highlight-slot');
+        currentHighlightedElement = null;
+      }
+
+      // Clear element picker selected element
+      if (currentSelectedElement) {
+        // Disconnect observer from selected element
+        const observer = highlightObservers.get(currentSelectedElement);
+        if (observer) {
+          observer.disconnect();
+          highlightObservers.delete(currentSelectedElement);
+        }
+        // Remove highlight classes
+        currentSelectedElement.classList.remove('adflow-highlight', 'adflow-highlight-slot', 'adflow-picker-hover');
+        currentSelectedElement = null;
+      }
+
+      // Clear picker hover state
+      if (pickerHoverElement) {
+        pickerHoverElement.classList.remove('adflow-picker-hover');
+        pickerHoverElement = null;
+      }
+
+      // Remove all highlight classes from any remaining elements (safety cleanup)
+      const allHighlighted = document.querySelectorAll('.adflow-highlight, .adflow-highlight-slot, .adflow-picker-hover');
+      allHighlighted.forEach(el => {
+        el.classList.remove('adflow-highlight', 'adflow-highlight-slot', 'adflow-picker-hover');
+        // Also disconnect any observers
+        const obs = highlightObservers.get(el as HTMLElement);
+        if (obs) {
+          obs.disconnect();
+          highlightObservers.delete(el as HTMLElement);
+        }
+      });
+
+      // Remove label
       document.getElementById('adflow-highlight-label')?.remove();
     }
 

@@ -8,6 +8,7 @@ export default function ElementInspector() {
     startElementPicker,
     stopElementPicker,
     clearInspectedElement,
+    clearAllInspectedElements,
     filteredRequests,
   } = useRequestStore();
 
@@ -83,7 +84,7 @@ export default function ElementInspector() {
       {/* Clear Button - shown when element is selected */}
       {inspectedElement && !isPickerActive && (
         <button
-          onClick={clearInspectedElement}
+          onClick={clearAllInspectedElements}
           className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
           title="Clear element selection"
         >

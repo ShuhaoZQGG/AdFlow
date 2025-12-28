@@ -225,6 +225,21 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
     }
   },
 
+  clearAllInspectedElements: () => {
+    set((state) => ({
+      inspectedElement: null,
+      filters: { ...state.filters, inspectedElement: undefined },
+    }));
+
+    const tabId = get().currentTabId;
+    if (tabId) {
+      chrome.runtime.sendMessage({
+        type: 'CLEAR_ALL_HIGHLIGHTS',
+        tabId,
+      }).catch(() => {});
+    }
+  },
+
   filteredRequests: () => {
     const { requests, filters } = get();
 

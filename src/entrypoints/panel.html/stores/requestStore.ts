@@ -294,6 +294,22 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
     }
   },
 
+  clearAllInspectedElements: () => {
+    set((state) => ({
+      inspectedElement: null,
+      filters: { ...state.filters, inspectedElement: undefined },
+    }));
+
+    // Clear all highlights on the page (including element picker highlights)
+    const tabId = chrome.devtools?.inspectedWindow?.tabId;
+    if (tabId) {
+      chrome.runtime.sendMessage({
+        type: 'CLEAR_ALL_HIGHLIGHTS',
+        tabId,
+      }).catch(() => {});
+    }
+  },
+
   filteredRequests: () => {
     const { requests, filters } = get();
     
