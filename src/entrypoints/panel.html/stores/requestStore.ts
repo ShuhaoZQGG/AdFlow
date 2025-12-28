@@ -162,7 +162,12 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
       slotMappings: [],
     }),
 
-  setSlotMappings: (slots) => set({ slotMappings: slots }),
+  setSlotMappings: (slots) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'requestStore.ts:165',message:'Slot mappings set',data:{slotsCount:slots.length,slotElementIds:slots.map(s=>s.elementId),slotSlotIds:slots.map(s=>s.slotId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    set({ slotMappings: slots });
+  },
 
   setFilters: (filters) =>
     set((state) => ({
@@ -291,8 +296,16 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
 
   filteredRequests: () => {
     const { requests, filters } = get();
+    
+    // #region agent log - Track filtering stats
+    let inspectedElementFilterCount = 0;
+    let inspectedElementMatchCount = 0;
+    let inspectedElementMismatchCount = 0;
+    let placementFilterCount = 0;
+    let placementMatchCount = 0;
+    // #endregion
 
-    return requests.filter((request) => {
+    const filtered = requests.filter((request) => {
       // Vendor filter
       if (filters.vendors.length > 0) {
         if (!request.vendor || !filters.vendors.includes(request.vendor.id)) {
@@ -368,6 +381,7 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
 
       // Placement filter - filter by elementId or slotId
       if (filters.placementFilter) {
+        placementFilterCount++;
         // Find the slot info for the selected placement
         const selectedSlot = get().slotMappings.find(s => s.elementId === filters.placementFilter);
 
@@ -396,6 +410,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
 
           if (!matchesElementId && !matchesSlotId && !urlMatchesSlot) {
             return false;
+          } else {
+            placementMatchCount++;
           }
         } else {
           // Fallback: direct match if slot info not found
@@ -410,52 +426,79 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
 
       // Inspected element filter - filter by frameId and direct URLs
       if (filters.inspectedElement) {
+        inspectedElementFilterCount++;
         const element = filters.inspectedElement;
+        
+        // #region agent log - Only log first request and mismatches
+        const isFirstRequest = inspectedElementFilterCount === 1;
+        // #endregion
 
         // Build set of all relevant frameIds (element's frame + child iframe frames)
         const relevantFrameIds = new Set<number>([element.frameId]);
         element.childFrameIds?.forEach(id => relevantFrameIds.add(id));
 
         // Match by frameId (element's frame or any child iframe frame)
+        // If frameId matches, include ALL requests from that frame (not just directUrls)
         const matchesFrameId = relevantFrameIds.has(request.frameId);
+
+        // Helper function to normalize URLs for comparison (remove query, hash, trailing slash)
+        const normalizeUrl = (url: string): string => {
+          try {
+            const urlObj = new URL(url);
+            // Remove hash and query for base comparison
+            return `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`.replace(/\/$/, '');
+          } catch {
+            // If URL parsing fails, try to clean it up manually
+            return url.split('?')[0].split('#')[0].replace(/\/$/, '');
+          }
+        };
+
+        // Helper function to check if two URLs match (handles query params, fragments, protocols)
+        const urlsMatch = (url1: string, url2: string): boolean => {
+          // Exact match
+          if (url1 === url2) return true;
+          
+          // One contains the other (for partial matches)
+          if (url1.includes(url2) || url2.includes(url1)) return true;
+          
+          try {
+            const url1Obj = new URL(url1);
+            const url2Obj = new URL(url2);
+            
+            // Match by hostname and pathname (ignore query, hash, protocol)
+            if (url1Obj.hostname === url2Obj.hostname && 
+                url1Obj.pathname === url2Obj.pathname) {
+                return true;
+              }
+            
+            // Normalized comparison
+            if (normalizeUrl(url1) === normalizeUrl(url2)) return true;
+            } catch {
+            // If one is relative, try to resolve it
+            try {
+              const baseUrl = window.location.href;
+              const resolved1 = new URL(url1, baseUrl);
+              const resolved2 = new URL(url2, baseUrl);
+              if (resolved1.hostname === resolved2.hostname && 
+                  resolved1.pathname === resolved2.pathname) {
+                return true;
+            }
+          } catch {
+              // Both failed to parse, fall back to string matching
+          }
+          }
+          
+          return false;
+        };
 
         // Match by direct URLs (for img, script, etc.)
         const matchesDirectUrl = element.directUrls.some(url => {
-          // Handle both absolute and relative URL matching
-          if (request.url === url) return true;
-          if (request.url.includes(url)) return true;
-          // Match URL path for relative URLs
-          try {
-            const reqUrl = new URL(request.url);
-            if (url.startsWith('/') && reqUrl.pathname === url) return true;
-            if (reqUrl.href.includes(url)) return true;
-            // Also try matching hostname for cross-origin cases
-            try {
-              const elementUrl = new URL(url, window.location.href);
-              if (reqUrl.hostname === elementUrl.hostname && reqUrl.pathname === elementUrl.pathname) {
-                return true;
-              }
-            } catch {
-              // Invalid element URL, skip
-            }
-          } catch {
-            // Invalid URL, skip
-          }
-          return false;
+          return urlsMatch(request.url, url);
         });
 
         // For iframes, also check if the request URL matches the iframe src
         const matchesIframeSrc = element.tagName === 'iframe' && element.src && (() => {
-          try {
-            const iframeUrl = new URL(element.src, window.location.href);
-            const reqUrl = new URL(request.url);
-            // Match by hostname and pathname
-            return reqUrl.hostname === iframeUrl.hostname && 
-                   (reqUrl.pathname === iframeUrl.pathname || request.url.includes(iframeUrl.hostname));
-          } catch {
-            // Fallback to simple string matching
-            return request.url.includes(element.src);
-          }
+          return urlsMatch(request.url, element.src);
         })();
 
         // Also check if the inspected element corresponds to an ad slot
@@ -468,12 +511,12 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
           const slotMapping = get().slotMappings.find(s => s.elementId === element.id);
           if (slotMapping) {
             // Match by slotId - handle various formats
-            matchesSlotId = request.slotId && (
+            matchesSlotId = !!(request.slotId && (
               request.slotId === slotMapping.slotId ||
               request.slotId.includes(slotMapping.slotId) ||
               slotMapping.slotId.includes(request.slotId) ||
               request.slotId.split('/').pop() === slotMapping.slotId.split('/').pop()
-            );
+            ));
 
             // Also check if request URL contains the slot identifiers
             if (!matchesSlotId) {
@@ -486,13 +529,147 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
           }
         }
 
-        if (!matchesFrameId && !matchesDirectUrl && !matchesIframeSrc && !matchesElementId && !matchesSlotId) {
+        // Check if the request's elementId matches any slot mapping,
+        // and if that slot mapping's elementId could be related to the picked element
+        // This handles cases where the picked element is a parent/child of the ad slot
+        let matchesRelatedSlot = false;
+        if (request.elementId) {
+          // Check if the request's elementId matches a slot mapping
+          const requestSlotMapping = get().slotMappings.find(s => s.elementId === request.elementId);
+          if (requestSlotMapping) {
+            // If the picked element has an id, check if it's related to the slot
+            if (element.id) {
+              // Check if element.id is contained in request.elementId or vice versa
+              // (handles cases like "ad-slot" vs "ad-slot-wrapper")
+              matchesRelatedSlot = 
+                element.id === request.elementId ||
+                element.id.includes(request.elementId) ||
+                request.elementId.includes(element.id);
+              
+              // Also check if slot name pattern appears in both IDs
+              // Extract slot name from slot mapping elementId (e.g., "fuse-slot-home_vrec_1-1" -> "home_vrec_1_1")
+              const slotNameMatch = requestSlotMapping.elementId.match(/[^-]+-(.+)/);
+              if (!matchesRelatedSlot && slotNameMatch && slotNameMatch[1]) {
+                const slotName = slotNameMatch[1];
+                // Check if this slot name appears in the picked element's ID
+                matchesRelatedSlot = element.id.includes(slotName) || slotName.includes(element.id.split('_').pop() || '');
+              }
+            }
+            
+            // Also match by slotId if we haven't matched yet
+            if (!matchesRelatedSlot && request.slotId) {
+              matchesRelatedSlot = (
+                request.slotId === requestSlotMapping.slotId ||
+                request.slotId.includes(requestSlotMapping.slotId) ||
+                requestSlotMapping.slotId.includes(request.slotId) ||
+                request.slotId.split('/').pop() === requestSlotMapping.slotId.split('/').pop()
+              );
+              
+              // Check URL patterns
+              if (!matchesRelatedSlot) {
+                matchesRelatedSlot = 
+                  request.url.includes(encodeURIComponent(requestSlotMapping.slotId)) ||
+                  request.url.includes(requestSlotMapping.elementId) ||
+                  request.url.includes(`iu=${encodeURIComponent(requestSlotMapping.slotId)}`) ||
+                  request.url.includes(`iu=${requestSlotMapping.slotId.replace(/\//g, '%2F')}`);
+              }
+            }
+            
+            // If request is in the same frame as the picked element and matches a slot mapping,
+            // consider it a match (the picked element is likely a container for this slot)
+            if (!matchesRelatedSlot && matchesFrameId) {
+              matchesRelatedSlot = true;
+            }
+          }
+        }
+        
+        // Also check if request.slotId matches any slot mapping, and if that slot could be related
+        if (!matchesRelatedSlot && request.slotId) {
+          const requestSlotId = request.slotId;
+          // Find slot mappings that match this request's slotId
+          const matchingSlotMappings = get().slotMappings.filter(s => 
+            s.slotId === requestSlotId ||
+            requestSlotId.includes(s.slotId) ||
+            s.slotId.includes(requestSlotId) ||
+            requestSlotId.split('/').pop() === s.slotId.split('/').pop()
+          );
+          
+          for (const mapping of matchingSlotMappings) {
+            // If the picked element is in the same frame, and the request matches a slot mapping,
+            // it's likely related (picked element is container/wrapper for the slot)
+            if (matchesFrameId) {
+              matchesRelatedSlot = true;
+              break;
+            }
+            
+            // Also check if slot name pattern matches
+            if (element.id && mapping.elementId) {
+              const slotNameMatch = mapping.elementId.match(/[^-]+-(.+)/);
+              if (slotNameMatch && slotNameMatch[1]) {
+                const slotName = slotNameMatch[1];
+                if (element.id.includes(slotName) || slotName.includes(element.id.split('_').pop() || '')) {
+                  matchesRelatedSlot = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+
+        // If frameId matches AND (request matches a slot OR matches directUrls), include it
+        // Otherwise, check other matching criteria
+        // Don't include ALL frame requests - only those that match slots or direct URLs
+        const finalMatch = matchesDirectUrl || matchesIframeSrc || matchesElementId || matchesSlotId || matchesRelatedSlot || (matchesFrameId && (matchesRelatedSlot || matchesSlotId || matchesElementId));
+        
+        // #region agent log - Log first request details and mismatches
+        if (isFirstRequest) {
+          const logDataFirst = {location:'requestStore.ts:580',message:'First inspected element filter check',data:{elementId:element.id,elementTagName:element.tagName,elementFrameId:element.frameId,requestUrl:request.url,requestElementId:request.elementId,requestSlotId:request.slotId,requestFrameId:request.frameId,slotMappingsCount:get().slotMappings.length,slotMappingElementIds:get().slotMappings.map(s=>s.elementId),finalMatch,matchesFrameId,matchesDirectUrl,matchesIframeSrc,matchesElementId,matchesSlotId,matchesRelatedSlot},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'};
+          console.log('[DEBUG] First request check:', logDataFirst);
+          fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logDataFirst)}).catch((e)=>console.warn('[DEBUG] Log failed:',e));
+        }
+        // #endregion
+        
+        if (finalMatch) {
+          inspectedElementMatchCount++;
+        } else {
+          inspectedElementMismatchCount++;
           return false;
         }
       }
 
       return true;
     });
+    
+    // #region agent log - Log summary after filtering
+    if (inspectedElementFilterCount > 0 || placementFilterCount > 0) {
+      const summary = {
+        location: 'requestStore.ts:filteredRequests',
+        message: 'Filter summary',
+        data: {
+          totalRequests: requests.length,
+          filteredCount: filtered.length,
+          inspectedElementFilterCount,
+          inspectedElementMatchCount,
+          inspectedElementMismatchCount,
+          placementFilterCount,
+          placementMatchCount,
+          slotMappingsCount: get().slotMappings.length,
+          slotMappingElementIds: get().slotMappings.map(s => s.elementId),
+          inspectedElementId: filters.inspectedElement?.id,
+          placementFilter: filters.placementFilter,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'SUMMARY'
+      };
+      console.log('[DEBUG] Filter summary:', summary);
+      fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(summary)}).catch((e)=>console.warn('[DEBUG] Log failed:',e));
+    }
+    // #endregion
+    
+    return filtered;
   },
 
   getIssueCounts: () => {
@@ -719,12 +896,10 @@ export function initializeMessageListener() {
     const inspectedTabId = getCurrentTabId();
 
     // Filter messages by tabId for tab-specific messages
-    if (message.payload?.tabId !== undefined && message.payload.tabId !== inspectedTabId) {
+    // Skip tab filtering for messages without payload or tabId
+    if (message.type !== 'CLEAR_REQUESTS' && 'payload' in message && message.payload && typeof message.payload === 'object' && 'tabId' in message.payload && message.payload.tabId !== undefined && message.payload.tabId !== inspectedTabId) {
       // Message is for a different tab, ignore it
-      // Exception: allow messages without tabId (like CLEAR_REQUESTS)
-      if (message.type !== 'CLEAR_REQUESTS') {
         return;
-      }
     }
 
     switch (message.type) {

@@ -421,6 +421,10 @@ export default defineContentScript({
 
       // Collect element info
       const elementInfo = collectElementInfo(selectedElement);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'content.ts:423',message:'Element picked and info collected',data:{elementId:elementInfo.id,elementTagName:elementInfo.tagName,elementFrameId:elementInfo.frameId,directUrlsCount:elementInfo.directUrls.length,directUrls:elementInfo.directUrls.slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+      // #endregion
 
       // Apply yellow highlight to selected element (keep picker active)
       // false = not ad slot, so no rotation animation
@@ -509,20 +513,87 @@ export default defineContentScript({
 
       // Collect direct URLs from this element
       const directUrls: string[] = [];
+      
+      // Standard attributes
       const src = element.getAttribute('src');
       const href = element.getAttribute('href');
       if (src && isValidUrl(src)) directUrls.push(src);
       if (href && isValidUrl(href)) directUrls.push(href);
+      
+      // Data attributes (common patterns for lazy loading, dynamic content)
+      const dataAttributes = ['data-src', 'data-url', 'data-href', 'data-action', 'data-image', 'data-img'];
+      dataAttributes.forEach(attr => {
+        const value = element.getAttribute(attr);
+        if (value && isValidUrl(value) && !directUrls.includes(value)) {
+          directUrls.push(value);
+        }
+      });
+      
+      // Form action URLs
+      if (element.tagName === 'FORM') {
+        const form = element as HTMLFormElement;
+        const action = form.action;
+        if (action && isValidUrl(action) && !directUrls.includes(action)) {
+          directUrls.push(action);
+        }
+      }
+      
+      // Button/form button with formaction
+      if (element.hasAttribute('formaction')) {
+        const formAction = element.getAttribute('formaction');
+        if (formAction && isValidUrl(formAction) && !directUrls.includes(formAction)) {
+          directUrls.push(formAction);
+        }
+      }
+      
+      // Video/audio sources
+      if (element.tagName === 'VIDEO' || element.tagName === 'AUDIO') {
+        const media = element as HTMLVideoElement | HTMLAudioElement;
+        if (media.src && isValidUrl(media.src) && !directUrls.includes(media.src)) {
+          directUrls.push(media.src);
+        }
+        // Also check source elements
+        const sources = element.querySelectorAll('source');
+        sources.forEach(source => {
+          const sourceSrc = source.getAttribute('src');
+          if (sourceSrc && isValidUrl(sourceSrc) && !directUrls.includes(sourceSrc)) {
+            directUrls.push(sourceSrc);
+          }
+        });
+      }
+      
+      // CSS background-image URLs (from computed styles)
+      try {
+        const computedStyle = window.getComputedStyle(element);
+        const bgImage = computedStyle.backgroundImage;
+        if (bgImage && bgImage !== 'none') {
+          // Extract URL from background-image: url("...") or url('...') or url(...)
+          const urlMatch = bgImage.match(/url\(['"]?([^'")]+)['"]?\)/);
+          if (urlMatch && urlMatch[1]) {
+            const bgUrl = urlMatch[1].trim();
+            if (isValidUrl(bgUrl) && !directUrls.includes(bgUrl)) {
+              directUrls.push(bgUrl);
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore errors getting computed styles
+      }
 
       // Also collect URLs from child elements (images, scripts, etc.)
-      const childResources = element.querySelectorAll('img[src], script[src], link[href], iframe[src]');
+      const childResources = element.querySelectorAll('img[src], script[src], link[href], iframe[src], video[src], audio[src], source[src]');
       childResources.forEach(child => {
         const childSrc = child.getAttribute('src') || child.getAttribute('href');
         if (childSrc && isValidUrl(childSrc) && !directUrls.includes(childSrc)) {
           directUrls.push(childSrc);
         }
+        // Also check data-src for lazy-loaded images
+        const dataSrc = child.getAttribute('data-src');
+        if (dataSrc && isValidUrl(dataSrc) && !directUrls.includes(dataSrc)) {
+          directUrls.push(dataSrc);
+        }
       });
-
+      
       // Collect child iframe info
       const childFrameIds: number[] = [];
       // Note: We can't directly get frameIds from content script
@@ -568,6 +639,11 @@ export default defineContentScript({
       childIframes.forEach(iframe => {
         if (iframe.src) {
           directUrls.push(iframe.src);
+        }
+        // Also check data-src for lazy-loaded iframes
+        const iframeDataSrc = iframe.getAttribute('data-src');
+        if (iframeDataSrc && isValidUrl(iframeDataSrc) && !directUrls.includes(iframeDataSrc)) {
+          directUrls.push(iframeDataSrc);
         }
       });
 
