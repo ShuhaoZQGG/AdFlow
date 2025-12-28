@@ -2,7 +2,7 @@ import { matchVendor, matchRequestType, getDecoderType } from '@/lib/vendors/mat
 import { autoDecodePayload, decodeRequestBody } from '@/lib/decoders';
 import { detectRequestIssues, detectCrossRequestIssues } from '@/lib/issues';
 import { detectAdFlowStage, extractSlotId } from '@/lib/adflow';
-import type { EnrichedRequest, MessageType, Issue, SlotInfo } from '@/lib/types';
+import type { EnrichedRequest, MessageType, Issue, SlotInfo, SelectedElement } from '@/lib/types';
 
 export default defineBackground(async () => {
   console.log('AdFlow Inspector: Background service worker started');
@@ -39,6 +39,9 @@ export default defineBackground(async () => {
 
   // Track tabs where content script has been injected
   const injectedTabs = new Set<number>();
+
+  // Track tabs where element selection is in progress (prevent multiple selections)
+  const elementSelectionInProgress = new Set<number>();
 
   // Inject content script into a tab if not already injected
   async function ensureContentScriptInjected(tabId: number) {
@@ -268,6 +271,7 @@ export default defineBackground(async () => {
         method: details.method,
         type: details.type,
         tabId: details.tabId,
+        frameId: details.frameId, // Track which frame initiated this request
         timestamp: details.timeStamp,
         startTime,
         vendor,
@@ -405,6 +409,119 @@ export default defineBackground(async () => {
     { urls: ['<all_urls>'] }
   );
 
+  // Resolve frame IDs for a selected element
+  async function resolveElementFrameIds(tabId: number, element: SelectedElement): Promise<SelectedElement> {
+    return new Promise((resolve, reject) => {
+      chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
+        if (!frames || frames.length === 0) {
+          console.warn('[AdFlow BG] No frames found for tab', tabId);
+          resolve(element); // Return original element if no frames found
+          return;
+        }
+
+        const enrichedElement = { ...element };
+        const frameMap = new Map<number, chrome.webNavigation.GetAllFrameResultDetails>();
+        const urlToFrameId = new Map<string, number>();
+
+        // Build maps for quick lookup
+        for (const frame of frames) {
+          frameMap.set(frame.frameId, frame);
+          // Normalize URL for matching (remove hash, trailing slash)
+          const normalizedUrl = frame.url.split('#')[0].replace(/\/$/, '');
+          urlToFrameId.set(normalizedUrl, frame.frameId);
+        }
+
+        // Resolve the element's own frameId
+        // If element is an iframe, match by its src URL; otherwise match by documentUrl
+        if (element.tagName === 'iframe' && element.src) {
+          // Element is an iframe - find its frameId by matching the iframe src
+          const normalizedIframeSrc = element.src.split('#')[0].replace(/\/$/, '');
+          const matchedFrameId = urlToFrameId.get(normalizedIframeSrc);
+          if (matchedFrameId !== undefined) {
+            enrichedElement.frameId = matchedFrameId;
+            console.log('[AdFlow BG] Resolved iframe element frameId:', matchedFrameId, 'for src:', element.src);
+          } else {
+            // Try partial matching
+            for (const [url, frameId] of urlToFrameId.entries()) {
+              if (url.includes(normalizedIframeSrc) || normalizedIframeSrc.includes(url)) {
+                enrichedElement.frameId = frameId;
+                console.log('[AdFlow BG] Resolved iframe element frameId (partial match):', frameId);
+                break;
+              }
+            }
+          }
+        } else if (element.documentUrl) {
+          // Element is not an iframe - find frameId by matching document URL
+          const normalizedDocUrl = element.documentUrl.split('#')[0].replace(/\/$/, '');
+          const matchedFrameId = urlToFrameId.get(normalizedDocUrl);
+          if (matchedFrameId !== undefined) {
+            enrichedElement.frameId = matchedFrameId;
+            console.log('[AdFlow BG] Resolved element frameId:', matchedFrameId, 'for URL:', element.documentUrl);
+          } else {
+            // Try partial matching (for cases where URLs differ slightly)
+            for (const [url, frameId] of urlToFrameId.entries()) {
+              if (url.includes(normalizedDocUrl) || normalizedDocUrl.includes(url)) {
+                enrichedElement.frameId = frameId;
+                console.log('[AdFlow BG] Resolved element frameId (partial match):', frameId);
+                break;
+              }
+            }
+          }
+        }
+
+        // Resolve child iframe frameIds
+        const resolvedChildFrameIds: number[] = [];
+        for (const iframeUrl of element.directUrls) {
+          // Check if this URL is an iframe src
+          if (element.tagName === 'iframe' && element.src === iframeUrl) {
+            // This is the iframe itself, not a child
+            continue;
+          }
+
+          // Try to match iframe URLs to frameIds
+          const normalizedIframeUrl = iframeUrl.split('#')[0].replace(/\/$/, '');
+          
+          // Exact match
+          let matchedFrameId = urlToFrameId.get(normalizedIframeUrl);
+          
+          // Partial match if exact match fails
+          if (matchedFrameId === undefined) {
+            for (const [url, frameId] of urlToFrameId.entries()) {
+              if (url.includes(normalizedIframeUrl) || normalizedIframeUrl.includes(url)) {
+                matchedFrameId = frameId;
+                break;
+              }
+            }
+          }
+
+          // Also check if this iframe is a child of the element's frame
+          if (matchedFrameId !== undefined) {
+            const frame = frameMap.get(matchedFrameId);
+            if (frame && frame.parentFrameId === enrichedElement.frameId) {
+              if (!resolvedChildFrameIds.includes(matchedFrameId)) {
+                resolvedChildFrameIds.push(matchedFrameId);
+                console.log('[AdFlow BG] Resolved child iframe frameId:', matchedFrameId, 'for URL:', iframeUrl);
+              }
+            }
+          }
+        }
+
+        // Also find all child frames by traversing the frame hierarchy
+        for (const frame of frames) {
+          if (frame.parentFrameId === enrichedElement.frameId) {
+            if (!resolvedChildFrameIds.includes(frame.frameId)) {
+              resolvedChildFrameIds.push(frame.frameId);
+              console.log('[AdFlow BG] Found child frame by hierarchy:', frame.frameId, frame.url);
+            }
+          }
+        }
+
+        enrichedElement.childFrameIds = resolvedChildFrameIds;
+        resolve(enrichedElement);
+      });
+    });
+  }
+
   // Handle messages from DevTools panel and content scripts
   chrome.runtime.onMessage.addListener((message: MessageType | { type: 'HIGHLIGHT_ELEMENT' | 'CLEAR_HIGHLIGHT' | 'SLOT_MAPPINGS_UPDATED'; tabId?: number; payload?: any }, sender, sendResponse) => {
     // Handle slot mappings update from content script
@@ -517,6 +634,112 @@ export default defineBackground(async () => {
         }
       });
       sendResponse({ success: true });
+      return true;
+    }
+
+    // Clear inspected element (used when starting new picker)
+    if (message.type === 'CLEAR_INSPECTED_ELEMENT') {
+      // Broadcast to DevTools panel to clear inspected element
+      broadcastToDevTools({
+        type: 'CLEAR_INSPECTED_ELEMENT',
+      });
+      sendResponse({ success: true });
+      return true;
+    }
+
+    // Element Inspector: Start element picker
+    if (message.type === 'START_ELEMENT_PICKER' && 'tabId' in message && message.tabId) {
+      // Clear any in-progress selection for this tab when starting new picker
+      elementSelectionInProgress.delete(message.tabId);
+      
+      console.log('[AdFlow BG] Starting element picker for tab', message.tabId);
+      // Send to main frame only - the picker will work across the page
+      chrome.tabs.sendMessage(
+        message.tabId,
+        { type: 'START_ELEMENT_PICKER' },
+        { frameId: 0 },
+        (response) => {
+          sendResponse(response || { success: false });
+        }
+      );
+      return true;
+    }
+
+    // Element Inspector: Stop element picker
+    if (message.type === 'STOP_ELEMENT_PICKER' && 'tabId' in message && message.tabId) {
+      console.log('[AdFlow BG] Stopping element picker for tab', message.tabId);
+      chrome.tabs.sendMessage(
+        message.tabId,
+        { type: 'STOP_ELEMENT_PICKER' },
+        { frameId: 0 },
+        (response) => {
+          sendResponse(response || { success: false });
+        }
+      );
+      return true;
+    }
+
+    // Element Inspector: Element selected from content script
+    if (message.type === 'ELEMENT_SELECTED') {
+      const tabId = sender.tab?.id;
+      console.log('[AdFlow BG] Element selected in tab', tabId, message.payload);
+      
+      // Prevent multiple simultaneous selections for the same tab
+      if (tabId && elementSelectionInProgress.has(tabId)) {
+        console.log('[AdFlow BG] Element selection already in progress for tab', tabId, '- ignoring duplicate');
+        sendResponse({ success: false, reason: 'selection_in_progress' });
+        return true;
+      }
+
+      if (tabId) {
+        // Mark selection as in progress
+        elementSelectionInProgress.add(tabId);
+
+        // Resolve frame IDs for the selected element
+        resolveElementFrameIds(tabId, message.payload)
+          .then((enrichedElement) => {
+            // Broadcast to DevTools panel with enriched element
+            broadcastToDevTools({
+              type: 'ELEMENT_SELECTED',
+              payload: {
+                element: enrichedElement,
+                tabId,
+              },
+            });
+            // Clear the in-progress flag
+            elementSelectionInProgress.delete(tabId);
+          })
+          .catch((err) => {
+            console.warn('[AdFlow BG] Failed to resolve frame IDs:', err);
+            // Still broadcast with original element if resolution fails
+            broadcastToDevTools({
+              type: 'ELEMENT_SELECTED',
+              payload: {
+                element: message.payload,
+                tabId,
+              },
+            });
+            // Clear the in-progress flag
+            elementSelectionInProgress.delete(tabId);
+          });
+      }
+      sendResponse({ success: true });
+      return true;
+    }
+
+    // Element Inspector: Get frame hierarchy for a tab
+    if (message.type === 'GET_FRAME_HIERARCHY' && 'tabId' in message && message.tabId) {
+      chrome.webNavigation.getAllFrames({ tabId: message.tabId }, (frames) => {
+        const frameInfos = (frames || []).map(f => ({
+          frameId: f.frameId,
+          parentFrameId: f.parentFrameId,
+          url: f.url,
+        }));
+        sendResponse({
+          type: 'FRAME_HIERARCHY_DATA',
+          payload: { frames: frameInfos, tabId: message.tabId },
+        });
+      });
       return true;
     }
 

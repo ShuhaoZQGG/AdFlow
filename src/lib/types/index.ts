@@ -65,6 +65,7 @@ export interface EnrichedRequest {
   method: string;
   type: chrome.webRequest.ResourceType;
   tabId: number;
+  frameId: number; // Frame ID from webRequest API (0 = main frame)
   timestamp: number;
   startTime: number; // ms since page load
   duration?: number;
@@ -110,6 +111,7 @@ export interface FilterState {
   searchQuery: string;
   showOnlyIssues: boolean;
   placementFilter?: string;   // Filter by ad placement/slot elementId
+  inspectedElement?: SelectedElement; // Filter by inspected DOM element
 }
 
 // Slot info from GAM/Prebid
@@ -118,6 +120,27 @@ export interface SlotInfo {
   slotId: string;
   type: 'gam' | 'prebid';
   sizes?: string[];
+}
+
+// Element Inspector types
+export interface SelectedElement {
+  tagName: string;
+  id?: string;
+  className?: string;
+  src?: string;
+  href?: string;
+  innerText?: string; // First 100 chars for context
+  frameId: number; // frameId of the frame containing this element (0 = main frame)
+  childFrameIds: number[]; // frameIds of child iframes within this element
+  directUrls: string[]; // URLs directly associated (img src, script src, etc.)
+  rect: { top: number; left: number; width: number; height: number };
+  documentUrl?: string; // URL of the document containing this element (for frame resolution)
+}
+
+export interface FrameInfo {
+  frameId: number;
+  parentFrameId: number;
+  url: string;
 }
 
 // Message types for background <-> devtools communication
@@ -132,7 +155,16 @@ export type MessageType =
   | { type: 'REQUESTS_DATA'; payload: EnrichedRequest[] }
   | { type: 'SLOT_MAPPINGS_UPDATED'; payload: { slots: SlotInfo[]; timestamp: number } }
   | { type: 'GET_SLOT_MAPPINGS'; tabId: number }
-  | { type: 'SLOT_MAPPINGS_DATA'; payload: { slots: SlotInfo[] } };
+  | { type: 'SLOT_MAPPINGS_DATA'; payload: { slots: SlotInfo[] } }
+  // Element Inspector messages
+  | { type: 'START_ELEMENT_PICKER'; tabId: number }
+  | { type: 'STOP_ELEMENT_PICKER'; tabId: number }
+  | { type: 'ELEMENT_PICKER_STARTED' }
+  | { type: 'ELEMENT_PICKER_STOPPED' }
+  | { type: 'ELEMENT_SELECTED'; payload: { element: SelectedElement; tabId: number } }
+  | { type: 'GET_FRAME_HIERARCHY'; tabId: number }
+  | { type: 'FRAME_HIERARCHY_DATA'; payload: { frames: FrameInfo[]; tabId: number } }
+  | { type: 'CLEAR_INSPECTED_ELEMENT' };
 
 // Category color mapping
 export const CATEGORY_COLORS: Record<VendorCategory, string> = {

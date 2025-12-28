@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { EnrichedRequest, FilterState, VendorCategory, RequestType, MessageType, IssueType, AIExplanation, AdFlow, SlotInfo } from '@/lib/types';
+import type { EnrichedRequest, FilterState, VendorCategory, RequestType, MessageType, IssueType, AIExplanation, AdFlow, SlotInfo, SelectedElement, FrameInfo } from '@/lib/types';
 import { groupRequestsIntoFlows } from '@/lib/adflow';
 import * as aiService from '@/lib/ai';
 import type { ChatMessage } from '@/lib/ai';
@@ -41,6 +41,11 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
 
   // Slot mappings
   slotMappings: [],
+
+  // Element Inspector state
+  isPickerActive: false,
+  inspectedElement: null,
+  frameHierarchy: [],
 
   // AI State
   aiExplanations: {},
@@ -157,7 +162,68 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
       filters: { ...state.filters, placementFilter: elementId },
     })),
 
-  resetFilters: () => set({ filters: initialFilters }),
+  setInspectedElement: (element) =>
+    set((state) => ({
+      inspectedElement: element,
+      filters: { ...state.filters, inspectedElement: element || undefined },
+    })),
+
+  resetFilters: () => set({
+    filters: initialFilters,
+    inspectedElement: null,
+  }),
+
+  // Element Inspector Actions
+  startElementPicker: async () => {
+    const tabId = get().currentTabId;
+    if (!tabId) {
+      console.warn('[AdFlow Store] No tab ID available');
+      return;
+    }
+
+    set({ isPickerActive: true });
+
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'START_ELEMENT_PICKER',
+        tabId,
+      });
+    } catch (err) {
+      console.error('[AdFlow Store] Failed to start element picker:', err);
+      set({ isPickerActive: false });
+    }
+  },
+
+  stopElementPicker: async () => {
+    const tabId = get().currentTabId;
+    if (!tabId) return;
+
+    set({ isPickerActive: false });
+
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'STOP_ELEMENT_PICKER',
+        tabId,
+      });
+    } catch (err) {
+      console.error('[AdFlow Store] Failed to stop element picker:', err);
+    }
+  },
+
+  clearInspectedElement: () => {
+    set((state) => ({
+      inspectedElement: null,
+      filters: { ...state.filters, inspectedElement: undefined },
+    }));
+
+    const tabId = get().currentTabId;
+    if (tabId) {
+      chrome.runtime.sendMessage({
+        type: 'CLEAR_HIGHLIGHT',
+        tabId,
+      }).catch(() => {});
+    }
+  },
 
   filteredRequests: () => {
     const { requests, filters } = get();
@@ -271,6 +337,87 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
           if (!matchesElementId && !matchesSlotId) {
             return false;
           }
+        }
+      }
+
+      // Inspected element filter - filter by frameId and direct URLs
+      if (filters.inspectedElement) {
+        const element = filters.inspectedElement;
+
+        // Build set of all relevant frameIds (element's frame + child iframe frames)
+        const relevantFrameIds = new Set<number>([element.frameId]);
+        element.childFrameIds?.forEach(id => relevantFrameIds.add(id));
+
+        // Match by frameId (element's frame or any child iframe frame)
+        const matchesFrameId = relevantFrameIds.has(request.frameId);
+
+        // Match by direct URLs (for img, script, etc.)
+        const matchesDirectUrl = element.directUrls.some(url => {
+          if (request.url === url) return true;
+          if (request.url.includes(url)) return true;
+          try {
+            const reqUrl = new URL(request.url);
+            if (url.startsWith('/') && reqUrl.pathname === url) return true;
+            if (reqUrl.href.includes(url)) return true;
+            // Also try matching hostname for cross-origin cases
+            try {
+              const elementUrl = new URL(url, window.location.href);
+              if (reqUrl.hostname === elementUrl.hostname && reqUrl.pathname === elementUrl.pathname) {
+                return true;
+              }
+            } catch {
+              // Invalid element URL, skip
+            }
+          } catch {
+            // Invalid URL, skip
+          }
+          return false;
+        });
+
+        // For iframes, also check if the request URL matches the iframe src
+        const matchesIframeSrc = element.tagName === 'iframe' && element.src && (() => {
+          try {
+            const iframeUrl = new URL(element.src, window.location.href);
+            const reqUrl = new URL(request.url);
+            // Match by hostname and pathname
+            return reqUrl.hostname === iframeUrl.hostname && 
+                   (reqUrl.pathname === iframeUrl.pathname || request.url.includes(iframeUrl.hostname));
+          } catch {
+            // Fallback to simple string matching
+            return request.url.includes(element.src);
+          }
+        })();
+
+        // Also check if the inspected element corresponds to an ad slot
+        // Match by elementId (if the element has an id that matches request.elementId)
+        const matchesElementId = element.id && request.elementId === element.id;
+
+        // Match by slotId (if we can find a slot mapping for this element)
+        let matchesSlotId = false;
+        if (element.id) {
+          const slotMapping = get().slotMappings.find(s => s.elementId === element.id);
+          if (slotMapping) {
+            // Match by slotId - handle various formats
+            matchesSlotId = request.slotId && (
+              request.slotId === slotMapping.slotId ||
+              request.slotId.includes(slotMapping.slotId) ||
+              slotMapping.slotId.includes(request.slotId) ||
+              request.slotId.split('/').pop() === slotMapping.slotId.split('/').pop()
+            );
+
+            // Also check if request URL contains the slot identifiers
+            if (!matchesSlotId) {
+              matchesSlotId = 
+                request.url.includes(encodeURIComponent(slotMapping.slotId)) ||
+                request.url.includes(slotMapping.elementId) ||
+                request.url.includes(`iu=${encodeURIComponent(slotMapping.slotId)}`) ||
+                request.url.includes(`iu=${slotMapping.slotId.replace(/\//g, '%2F')}`);
+            }
+          }
+        }
+
+        if (!matchesFrameId && !matchesDirectUrl && !matchesIframeSrc && !matchesElementId && !matchesSlotId) {
+          return false;
         }
       }
 
@@ -561,6 +708,28 @@ export function initializeMessageListener() {
         if (message.payload?.slots) {
           store.setSlotMappings(message.payload.slots);
         }
+        break;
+
+      case 'ELEMENT_SELECTED':
+        if (message.payload?.element) {
+          // Clear any previous selection first, then set the new one
+          // This ensures only one element is selected at a time
+          store.clearInspectedElement();
+          useRequestStore.setState({
+            isPickerActive: false,
+            inspectedElement: message.payload.element,
+          });
+          store.setInspectedElement(message.payload.element);
+        }
+        break;
+
+      case 'ELEMENT_PICKER_STOPPED':
+        store.clearInspectedElement();
+        useRequestStore.setState({ isPickerActive: false });
+        break;
+
+      case 'CLEAR_INSPECTED_ELEMENT':
+        store.clearInspectedElement();
         break;
     }
   });

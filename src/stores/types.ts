@@ -1,5 +1,5 @@
 // Shared store types for both panel and sidepanel
-import type { EnrichedRequest, FilterState, VendorCategory, RequestType, IssueType, AIExplanation, AdFlow, SlotInfo } from '@/lib/types';
+import type { EnrichedRequest, FilterState, VendorCategory, RequestType, IssueType, AIExplanation, AdFlow, SlotInfo, SelectedElement, FrameInfo } from '@/lib/types';
 import type { ChatMessage } from '@/lib/ai';
 
 export interface RequestStore {
@@ -7,6 +7,11 @@ export interface RequestStore {
   selectedRequest: EnrichedRequest | null;
   filters: FilterState;
   slotMappings: SlotInfo[];
+
+  // Element Inspector state
+  isPickerActive: boolean;
+  inspectedElement: SelectedElement | null;
+  frameHierarchy: FrameInfo[];
 
   // AI State
   aiExplanations: Record<string, AIExplanation>;
@@ -41,7 +46,13 @@ export interface RequestStore {
   toggleShowOnlyIssues: () => void;
   setSearchQuery: (query: string) => void;
   setPlacementFilter: (elementId: string | undefined) => void;
+  setInspectedElement: (element: SelectedElement | null) => void;
   resetFilters: () => void;
+
+  // Element Inspector Actions
+  startElementPicker: () => Promise<void>;
+  stopElementPicker: () => Promise<void>;
+  clearInspectedElement: () => void;
 
   // AI Actions
   explainRequest: (request: EnrichedRequest) => Promise<void>;

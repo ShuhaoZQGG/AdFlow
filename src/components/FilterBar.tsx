@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useRequestStore } from '@/contexts/RequestStoreContext';
 import { CategoryBadge } from './VendorBadge';
+import ElementInspector from './ElementInspector';
 import type { VendorCategory, RequestType, IssueType, Vendor } from '@/lib/types';
 import { ISSUE_LABELS } from '@/lib/types';
 
@@ -358,7 +359,8 @@ export default function FilterBar() {
     filters.vendors.length > 0 ||
     filters.showOnlyIssues ||
     filters.searchQuery.length > 0 ||
-    !!filters.placementFilter;
+    !!filters.placementFilter ||
+    !!filters.inspectedElement;
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#252526]">
@@ -388,6 +390,9 @@ export default function FilterBar() {
 
       {/* Placement/Slot dropdown */}
       <PlacementDropdown />
+
+      {/* Element Inspector */}
+      <ElementInspector />
 
       <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
 
