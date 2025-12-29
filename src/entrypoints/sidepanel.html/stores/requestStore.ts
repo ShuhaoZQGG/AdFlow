@@ -472,7 +472,8 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
   },
 
   getHeaderBiddingAnalysis: () => {
-    const { requests } = get();
+    const { filteredRequests } = get();
+    const requests = filteredRequests();
     const flows = groupRequestsIntoFlows(requests);
     
     if (requests.length === 0) {
