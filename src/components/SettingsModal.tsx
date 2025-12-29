@@ -4,6 +4,7 @@ import {
   getBackendUrl, setBackendUrl, clearBackendUrl, testBackendUrl,
   getAIMode, setAIMode, type AIMode
 } from '@/lib/ai';
+import { useTheme, type ThemeMode, type DarkThemeVariant } from '@/contexts/ThemeContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { themeMode, darkThemeVariant, setThemeMode, setDarkThemeVariant } = useTheme();
   const [mode, setMode] = useState<AIMode>('direct');
   const [apiKey, setApiKeyState] = useState('');
   const [backendUrl, setBackendUrlState] = useState('');
@@ -183,6 +185,86 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Content */}
         <div className="p-4 space-y-6">
+          {/* Theme Settings */}
+          <div>
+            <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">Appearance</h3>
+            
+            {/* Theme Mode Selection */}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Theme Mode
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setThemeMode('system')}
+                  className={`flex-1 px-3 py-2 text-sm rounded border ${
+                    themeMode === 'system'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="font-medium">System</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Follow OS
+                  </div>
+                </button>
+                <button
+                  onClick={() => setThemeMode('light')}
+                  className={`flex-1 px-3 py-2 text-sm rounded border ${
+                    themeMode === 'light'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="font-medium">Light</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Always light
+                  </div>
+                </button>
+                <button
+                  onClick={() => setThemeMode('dark')}
+                  className={`flex-1 px-3 py-2 text-sm rounded border ${
+                    themeMode === 'dark'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="font-medium">Dark</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Always dark
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Dark Theme Variant Selection */}
+            {themeMode === 'dark' || themeMode === 'system' ? (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Dark Theme Variant
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['default', 'blue', 'green', 'purple', 'amber'] as DarkThemeVariant[]).map((variant) => (
+                    <button
+                      key={variant}
+                      onClick={() => setDarkThemeVariant(variant)}
+                      className={`px-3 py-2 text-sm rounded border capitalize ${
+                        darkThemeVariant === variant
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {variant}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Choose a color variant for dark mode. This affects accent colors and backgrounds.
+                </p>
+              </div>
+            ) : null}
+          </div>
+
           {/* Mode Selection */}
           <div>
             <h3 className="text-sm font-medium mb-3">AI Mode</h3>

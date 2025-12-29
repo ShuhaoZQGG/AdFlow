@@ -6,14 +6,61 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 12px;
   line-height: 1.4;
-  color: #333;
-  background: #fff;
+  color: #1a1a1a; /* Improved contrast: #333 -> #1a1a1a (WCAG AAA) */
+  background: #ffffff;
 }
 
-/* Dark mode support for DevTools */
+/* Dark mode support - improved contrast */
+.dark {
+  color: #e5e5e5; /* Improved contrast: #e0e0e0 -> #e5e5e5 */
+  background: #1e1e1e;
+}
+
+/* Theme variants for dark mode using CSS variables */
+.dark[data-theme-variant="default"] {
+  --theme-bg: #1e1e1e;
+  --theme-bg-secondary: #252526;
+  --theme-text: #e5e5e5;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+}
+
+.dark[data-theme-variant="blue"] {
+  --theme-bg: #1a1f2e;
+  --theme-bg-secondary: #252a3a;
+  --theme-text: #e5e7eb;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+}
+
+.dark[data-theme-variant="green"] {
+  --theme-bg: #1a241e;
+  --theme-bg-secondary: #252a26;
+  --theme-text: #e5ebe5;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+}
+
+.dark[data-theme-variant="purple"] {
+  --theme-bg: #221e2a;
+  --theme-bg-secondary: #2a2530;
+  --theme-text: #ede5f0;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+}
+
+.dark[data-theme-variant="amber"] {
+  --theme-bg: #241f1a;
+  --theme-bg-secondary: #2a2520;
+  --theme-text: #f0ede5;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+}
+
+/* Fallback for prefers-color-scheme (when class-based dark mode not available) */
 @media (prefers-color-scheme: dark) {
-  :root {
-    color: #e0e0e0;
+  :root:not(.light) {
+    color: #e5e5e5;
     background: #1e1e1e;
   }
 }
@@ -29,43 +76,59 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: #b0b0b0; /* Improved contrast */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
+  background: #909090; /* Improved contrast */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #666; /* Improved contrast: #555 -> #666 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777; /* Improved contrast: #666 -> #777 */
 }
 
 @media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: #555;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
+  :root:not(.light) ::-webkit-scrollbar-thumb {
     background: #666;
   }
-}
 
-/* Request row hover state */
-.request-row:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-@media (prefers-color-scheme: dark) {
-  .request-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+  :root:not(.light) ::-webkit-scrollbar-thumb:hover {
+    background: #777;
   }
 }
 
-/* Selected request */
-.request-row.selected {
-  background: rgba(59, 130, 246, 0.1);
+/* Request row hover state - improved contrast */
+.request-row:hover {
+  background: rgba(0, 0, 0, 0.06); /* Improved: 0.05 -> 0.06 */
+}
+
+.dark .request-row:hover {
+  background: rgba(255, 255, 255, 0.08); /* Improved: 0.05 -> 0.08 */
 }
 
 @media (prefers-color-scheme: dark) {
-  .request-row.selected {
-    background: rgba(59, 130, 246, 0.2);
+  :root:not(.light) .request-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Selected request - improved contrast */
+.request-row.selected {
+  background: rgba(59, 130, 246, 0.12); /* Improved: 0.1 -> 0.12 */
+}
+
+.dark .request-row.selected {
+  background: rgba(59, 130, 246, 0.25); /* Improved: 0.2 -> 0.25 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .request-row.selected {
+    background: rgba(59, 130, 246, 0.25);
   }
 }
 
@@ -97,25 +160,45 @@
   color: #808080;
 }
 
+.dark .json-key {
+  color: #9cdcfe;
+}
+
+.dark .json-string {
+  color: #ce9178;
+}
+
+.dark .json-number {
+  color: #b5cea8;
+}
+
+.dark .json-boolean {
+  color: #569cd6;
+}
+
+.dark .json-null {
+  color: #999; /* Improved contrast: #808080 -> #999 */
+}
+
 @media (prefers-color-scheme: dark) {
-  .json-key {
+  :root:not(.light) .json-key {
     color: #9cdcfe;
   }
 
-  .json-string {
+  :root:not(.light) .json-string {
     color: #ce9178;
   }
 
-  .json-number {
+  :root:not(.light) .json-number {
     color: #b5cea8;
   }
 
-  .json-boolean {
+  :root:not(.light) .json-boolean {
     color: #569cd6;
   }
 
-  .json-null {
-    color: #808080;
+  :root:not(.light) .json-null {
+    color: #999;
   }
 }
 

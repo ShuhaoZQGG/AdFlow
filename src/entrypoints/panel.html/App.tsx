@@ -11,6 +11,7 @@ import SessionSummaryPanel from '@/components/SessionSummary';
 import ExportMenu from '@/components/ExportMenu';
 import ChatBox from '@/components/ChatBox';
 import HeaderBiddingPanel from '@/components/HeaderBiddingPanel';
+import ThemeToggle from '@/components/ThemeToggle';
 
 type ViewMode = 'list' | 'timeline' | 'flow' | 'headerbidding';
 type AITab = 'summary' | 'ordering' | 'discrepancies';
@@ -162,6 +163,9 @@ export default function App() {
           >
             Clear
           </button>
+
+          {/* Theme toggle */}
+          <ThemeToggle />
 
           {/* Settings button */}
           <button
