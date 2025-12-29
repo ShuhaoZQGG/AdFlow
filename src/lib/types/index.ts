@@ -263,3 +263,56 @@ export interface AIState {
   isAnalyzing: boolean;
   aiError: string | null;
 }
+
+// Header Bidding Analysis Types
+
+export type HeaderBiddingSetup = 
+  | 'prebid' 
+  | 'prebid-server' 
+  | 'other-header-bidding' 
+  | 'waterfall-only' 
+  | 'mixed' 
+  | 'unknown';
+
+export interface BidLatencyMetrics {
+  vendor: string;
+  requestCount: number;
+  responseCount: number;
+  avgLatency: number;
+  minLatency: number;
+  maxLatency: number;
+  p95Latency: number;
+  timeoutCount: number;
+  timeoutRate: number;
+}
+
+export interface BidLatencyAnalysis {
+  overall: {
+    totalBidRequests: number;
+    totalBidResponses: number;
+    responseRate: number;
+    avgLatency: number;
+  };
+  byVendor: BidLatencyMetrics[];
+  slowVendors: string[]; // Vendors with avg latency > 3000ms
+  timeoutVendors: string[]; // Vendors with timeout rate > 10%
+}
+
+export interface ConflictDetection {
+  type: 'waterfall_before_hb' | 'duplicate_serving' | 'timing_conflict';
+  severity: 'warning' | 'error';
+  message: string;
+  flowId: string;
+  slotId?: string;
+  details: string;
+  relatedRequestIds: string[];
+}
+
+export interface HeaderBiddingAnalysis {
+  setup: HeaderBiddingSetup;
+  prebidDetected: boolean;
+  prebidServerDetected: boolean;
+  latencyAnalysis: BidLatencyAnalysis;
+  conflicts: ConflictDetection[];
+  timestamp: number;
+}

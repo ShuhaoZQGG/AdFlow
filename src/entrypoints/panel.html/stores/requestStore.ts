@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { EnrichedRequest, FilterState, VendorCategory, RequestType, MessageType, IssueType, AIExplanation, AdFlow, DecodedPayload, SlotInfo, SelectedElement, FrameInfo } from '@/lib/types';
+import type { EnrichedRequest, FilterState, VendorCategory, RequestType, MessageType, IssueType, AIExplanation, AdFlow, DecodedPayload, SlotInfo, SelectedElement, FrameInfo, HeaderBiddingAnalysis } from '@/lib/types';
 import { groupRequestsIntoFlows } from '@/lib/adflow';
 import * as aiService from '@/lib/ai';
 import type { ChatMessage } from '@/lib/ai';
 import { decodeRequestBody } from '@/lib/decoders';
+import { generateHeaderBiddingAnalysis } from '@/lib/headerbidding';
 
 // Helper to create a cache key from filtered request IDs and filters
 function createCacheKey(requestIds: string[], filters: FilterState): string {
@@ -44,6 +45,9 @@ interface RequestStore {
   sessionSummaryCacheKey: string | null;
   orderingAnalysisCacheKey: string | null;
   discrepanciesCacheKey: string | null;
+
+  // Header Bidding Analysis
+  headerBiddingAnalysis: HeaderBiddingAnalysis | null;
 
   // Actions
   addRequest: (request: EnrichedRequest) => void;
@@ -86,6 +90,7 @@ interface RequestStore {
   filteredRequests: () => EnrichedRequest[];
   getIssueCounts: () => { total: number; byType: Record<IssueType, number> };
   getAdFlows: () => AdFlow[];
+  getHeaderBiddingAnalysis: () => HeaderBiddingAnalysis | null;
 }
 
 const initialFilters: FilterState = {
@@ -131,6 +136,9 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   orderingAnalysisCacheKey: null,
   discrepanciesCacheKey: null,
 
+  // Header Bidding Analysis
+  headerBiddingAnalysis: null,
+
   addRequest: (request) =>
     set((state) => {
       // Prevent duplicates by checking if request ID already exists
@@ -163,9 +171,6 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
     }),
 
   setSlotMappings: (slots) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'requestStore.ts:165',message:'Slot mappings set',data:{slotsCount:slots.length,slotElementIds:slots.map(s=>s.elementId),slotSlotIds:slots.map(s=>s.slotId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     set({ slotMappings: slots });
   },
 
@@ -312,14 +317,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
 
   filteredRequests: () => {
     const { requests, filters } = get();
-    
-    // #region agent log - Track filtering stats
-    let inspectedElementFilterCount = 0;
-    let inspectedElementMatchCount = 0;
-    let inspectedElementMismatchCount = 0;
     let placementFilterCount = 0;
     let placementMatchCount = 0;
-    // #endregion
 
     const filtered = requests.filter((request) => {
       // Vendor filter
@@ -442,12 +441,7 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
 
       // Inspected element filter - filter by frameId and direct URLs
       if (filters.inspectedElement) {
-        inspectedElementFilterCount++;
         const element = filters.inspectedElement;
-        
-        // #region agent log - Only log first request and mismatches
-        const isFirstRequest = inspectedElementFilterCount === 1;
-        // #endregion
 
         // Build set of all relevant frameIds (element's frame + child iframe frames)
         const relevantFrameIds = new Set<number>([element.frameId]);
@@ -638,52 +632,13 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
         // Don't include ALL frame requests - only those that match slots or direct URLs
         const finalMatch = matchesDirectUrl || matchesIframeSrc || matchesElementId || matchesSlotId || matchesRelatedSlot || (matchesFrameId && (matchesRelatedSlot || matchesSlotId || matchesElementId));
         
-        // #region agent log - Log first request details and mismatches
-        if (isFirstRequest) {
-          const logDataFirst = {location:'requestStore.ts:580',message:'First inspected element filter check',data:{elementId:element.id,elementTagName:element.tagName,elementFrameId:element.frameId,requestUrl:request.url,requestElementId:request.elementId,requestSlotId:request.slotId,requestFrameId:request.frameId,slotMappingsCount:get().slotMappings.length,slotMappingElementIds:get().slotMappings.map(s=>s.elementId),finalMatch,matchesFrameId,matchesDirectUrl,matchesIframeSrc,matchesElementId,matchesSlotId,matchesRelatedSlot},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'};
-          console.log('[DEBUG] First request check:', logDataFirst);
-          fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logDataFirst)}).catch((e)=>console.warn('[DEBUG] Log failed:',e));
-        }
-        // #endregion
-        
-        if (finalMatch) {
-          inspectedElementMatchCount++;
-        } else {
-          inspectedElementMismatchCount++;
+        if (!finalMatch) {
           return false;
         }
       }
 
       return true;
     });
-    
-    // #region agent log - Log summary after filtering
-    if (inspectedElementFilterCount > 0 || placementFilterCount > 0) {
-      const summary = {
-        location: 'requestStore.ts:filteredRequests',
-        message: 'Filter summary',
-        data: {
-          totalRequests: requests.length,
-          filteredCount: filtered.length,
-          inspectedElementFilterCount,
-          inspectedElementMatchCount,
-          inspectedElementMismatchCount,
-          placementFilterCount,
-          placementMatchCount,
-          slotMappingsCount: get().slotMappings.length,
-          slotMappingElementIds: get().slotMappings.map(s => s.elementId),
-          inspectedElementId: filters.inspectedElement?.id,
-          placementFilter: filters.placementFilter,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'SUMMARY'
-      };
-      console.log('[DEBUG] Filter summary:', summary);
-      fetch('http://127.0.0.1:7242/ingest/c25b5a96-a2e1-43b7-9889-2d801502579d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(summary)}).catch((e)=>console.warn('[DEBUG] Log failed:',e));
-    }
-    // #endregion
     
     return filtered;
   },
@@ -716,6 +671,21 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   getAdFlows: () => {
     const { requests } = get();
     return groupRequestsIntoFlows(requests);
+  },
+
+  getHeaderBiddingAnalysis: () => {
+    const { requests } = get();
+    const flows = groupRequestsIntoFlows(requests);
+    
+    if (requests.length === 0) {
+      return null;
+    }
+
+    try {
+      return generateHeaderBiddingAnalysis(requests, flows);
+    } catch (error) {
+      throw error;
+    }
   },
 
   // AI Actions

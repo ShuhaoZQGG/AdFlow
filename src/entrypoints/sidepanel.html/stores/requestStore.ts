@@ -4,6 +4,7 @@ import { groupRequestsIntoFlows } from '@/lib/adflow';
 import * as aiService from '@/lib/ai';
 import type { ChatMessage } from '@/lib/ai';
 import type { RequestStore } from '@/stores/types';
+import { generateHeaderBiddingAnalysis } from '@/lib/headerbidding';
 
 // Helper to create a cache key from filtered request IDs and filters
 function createCacheKey(requestIds: string[], filters: FilterState): string {
@@ -468,6 +469,21 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
   getAdFlows: () => {
     const { requests } = get();
     return groupRequestsIntoFlows(requests);
+  },
+
+  getHeaderBiddingAnalysis: () => {
+    const { requests } = get();
+    const flows = groupRequestsIntoFlows(requests);
+    
+    if (requests.length === 0) {
+      return null;
+    }
+
+    try {
+      return generateHeaderBiddingAnalysis(requests, flows);
+    } catch (error) {
+      throw error;
+    }
   },
 
   // AI Actions

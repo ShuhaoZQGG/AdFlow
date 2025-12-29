@@ -10,8 +10,9 @@ import SettingsModal from '@/components/SettingsModal';
 import SessionSummaryPanel from '@/components/SessionSummary';
 import ExportMenu from '@/components/ExportMenu';
 import ChatBox from '@/components/ChatBox';
+import HeaderBiddingPanel from '@/components/HeaderBiddingPanel';
 
-type ViewMode = 'list' | 'timeline' | 'flow';
+type ViewMode = 'list' | 'timeline' | 'flow' | 'headerbidding';
 type AITab = 'summary' | 'ordering' | 'discrepancies';
 
 export default function App() {
@@ -134,6 +135,16 @@ export default function App() {
             >
               Timeline
             </button>
+            <button
+              onClick={() => setViewMode('headerbidding')}
+              className={`px-2 py-1 text-xs ${
+                viewMode === 'headerbidding'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+              }`}
+            >
+              Header Bidding
+            </button>
           </div>
 
           {/* Export menu */}
@@ -222,6 +233,8 @@ export default function App() {
             <RequestList requests={requests} />
           ) : viewMode === 'flow' ? (
             <FlowView requests={requests} />
+          ) : viewMode === 'headerbidding' ? (
+            <HeaderBiddingPanel />
           ) : (
             <Timeline requests={requests} />
           )}

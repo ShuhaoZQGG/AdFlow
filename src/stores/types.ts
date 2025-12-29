@@ -1,5 +1,5 @@
 // Shared store types for both panel and sidepanel
-import type { EnrichedRequest, FilterState, VendorCategory, RequestType, IssueType, AIExplanation, AdFlow, SlotInfo, SelectedElement, FrameInfo } from '@/lib/types';
+import type { EnrichedRequest, FilterState, VendorCategory, RequestType, IssueType, AIExplanation, AdFlow, SlotInfo, SelectedElement, FrameInfo, HeaderBiddingAnalysis } from '@/lib/types';
 import type { ChatMessage } from '@/lib/ai';
 
 export interface RequestStore {
@@ -70,4 +70,5 @@ export interface RequestStore {
   filteredRequests: () => EnrichedRequest[];
   getIssueCounts: () => { total: number; byType: Record<IssueType, number> };
   getAdFlows: () => AdFlow[];
+  getHeaderBiddingAnalysis: () => HeaderBiddingAnalysis | null;
 }

@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRequestStore } from '@/contexts/RequestStoreContext';
 import VendorBadge from './VendorBadge';
 import type { EnrichedRequest, AdFlow, AdFlowStage } from '@/lib/types';
 import { AD_FLOW_STAGE_META, ISSUE_LABELS } from '@/lib/types';
 import { groupRequestsIntoFlows } from '@/lib/adflow';
+import { generateHeaderBiddingAnalysis } from '@/lib/headerbidding';
 
 interface FlowViewProps {
   requests: EnrichedRequest[];
@@ -12,8 +13,68 @@ interface FlowViewProps {
 export default function FlowView({ requests }: FlowViewProps) {
   const { selectRequest, selectedRequest } = useRequestStore();
 
-  // Group requests into flows
-  const flows = useMemo(() => groupRequestsIntoFlows(requests), [requests]);
+  // Use debounced flow calculation to prevent blocking UI during rapid request updates
+  const [flows, setFlows] = useState<AdFlow[]>([]);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRequestIdsRef = useRef<string>('');
+
+  useEffect(() => {
+    // Create a stable key from request IDs to detect actual changes
+    const requestIds = requests.map(r => r.id).join(',');
+    
+    // Only recalculate if request IDs actually changed
+    if (requestIds === lastRequestIdsRef.current) {
+      return;
+    }
+    
+    lastRequestIdsRef.current = requestIds;
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Calculate flows immediately for the first render or if requests are stable
+    if (flows.length === 0) {
+      setFlows(groupRequestsIntoFlows(requests));
+      return;
+    }
+
+    // Debounce flow recalculation to prevent blocking during rapid updates
+    // Use a short delay (50ms) to balance responsiveness and performance
+    debounceTimerRef.current = setTimeout(() => {
+      setFlows(groupRequestsIntoFlows(requests));
+    }, 50);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [requests, flows.length]);
+
+  // Calculate header bidding analysis based on debounced flows to avoid double calculation
+  const headerBiddingAnalysis = useMemo(() => {
+    if (requests.length === 0 || flows.length === 0) {
+      return null;
+    }
+    try {
+      return generateHeaderBiddingAnalysis(requests, flows);
+    } catch (error) {
+      console.error('Failed to generate header bidding analysis:', error);
+      return null;
+    }
+  }, [requests, flows]);
+
+  // Create conflict map for quick lookup
+  const conflictMap = useMemo(() => {
+    if (!headerBiddingAnalysis || !headerBiddingAnalysis.conflicts) return new Map<string, boolean>();
+    const map = new Map<string, boolean>();
+    headerBiddingAnalysis.conflicts.forEach(conflict => {
+      map.set(conflict.flowId, true);
+    });
+    return map;
+  }, [headerBiddingAnalysis]);
 
   if (flows.length === 0) {
     return (
@@ -51,6 +112,8 @@ export default function FlowView({ requests }: FlowViewProps) {
           flow={flow}
           selectedRequestId={selectedRequest?.id}
           onSelectRequest={selectRequest}
+          hasConflict={conflictMap.get(flow.id) || false}
+          headerBiddingAnalysis={headerBiddingAnalysis}
         />
       ))}
     </div>
@@ -61,9 +124,11 @@ interface FlowCardProps {
   flow: AdFlow;
   selectedRequestId?: string;
   onSelectRequest: (request: EnrichedRequest | null) => void;
+  hasConflict: boolean;
+  headerBiddingAnalysis: ReturnType<ReturnType<typeof useRequestStore>['getHeaderBiddingAnalysis']>;
 }
 
-function FlowCard({ flow, selectedRequestId, onSelectRequest }: FlowCardProps) {
+function FlowCard({ flow, selectedRequestId, onSelectRequest, hasConflict, headerBiddingAnalysis }: FlowCardProps) {
   const [expanded, setExpanded] = useState(true);
 
   // Get stages in order
@@ -73,11 +138,48 @@ function FlowCard({ flow, selectedRequestId, onSelectRequest }: FlowCardProps) {
   const hasIssues = flow.issues.length > 0;
   const duration = flow.endTime ? flow.endTime - flow.startTime : undefined;
 
+  // Check if this flow has header bidding
+  const hasHeaderBidding = flow.stages.has('prebid_auction') || 
+                          flow.stages.has('bid_request');
+
+  // Calculate bid latency for this flow if it has header bidding
+  const bidLatency = useMemo(() => {
+    if (!hasHeaderBidding || !headerBiddingAnalysis) return null;
+    
+    const bidRequests = [
+      ...(flow.stages.get('prebid_auction') || []),
+      ...(flow.stages.get('bid_request') || []),
+    ];
+    
+    if (bidRequests.length === 0) return null;
+
+    const latencies = bidRequests
+      .filter(r => r.duration !== undefined && r.duration > 0)
+      .map(r => r.duration!);
+    
+    if (latencies.length === 0) return null;
+    
+    const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+    return Math.round(avg);
+  }, [flow, hasHeaderBidding, headerBiddingAnalysis]);
+
+  const borderColor = hasConflict
+    ? 'border-red-300 dark:border-red-700'
+    : hasIssues
+    ? 'border-amber-300 dark:border-amber-700'
+    : 'border-gray-200 dark:border-gray-700';
+  
+  const bgColor = hasConflict
+    ? 'bg-red-50 dark:bg-red-900/20'
+    : hasIssues
+    ? 'bg-amber-50 dark:bg-amber-900/20'
+    : '';
+
   return (
-    <div className={`rounded-lg border ${hasIssues ? 'border-amber-300 dark:border-amber-700' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#1e1e1e] overflow-hidden`}>
+    <div className={`rounded-lg border ${borderColor} bg-white dark:bg-[#1e1e1e] overflow-hidden`}>
       {/* Flow Header */}
       <div
-        className={`flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${hasIssues ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}
+        className={`flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${bgColor}`}
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -96,6 +198,14 @@ function FlowCard({ flow, selectedRequestId, onSelectRequest }: FlowCardProps) {
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {flow.slotId || flow.adUnitPath || 'Ad Flow'}
               </span>
+              {hasHeaderBidding && (
+                <span 
+                  className="px-1.5 py-0.5 text-[10px] rounded bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300"
+                  title={bidLatency ? `Header Bidding - Avg latency: ${bidLatency}ms` : 'Header Bidding'}
+                >
+                  HB{bidLatency ? ` (${bidLatency}ms)` : ''}
+                </span>
+              )}
               {flow.winningBid && (
                 <span className="px-1.5 py-0.5 text-[10px] rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
                   {flow.winningBid.vendor}
@@ -116,6 +226,11 @@ function FlowCard({ flow, selectedRequestId, onSelectRequest }: FlowCardProps) {
             <StageIndicator key={stage} stage={stage} count={requests.length} />
           ))}
 
+          {hasConflict && (
+            <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300" title="Header bidding conflict detected">
+              Conflict
+            </span>
+          )}
           {hasIssues && (
             <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
               {flow.issues.length} issue{flow.issues.length !== 1 ? 's' : ''}
@@ -218,7 +333,8 @@ function StageGroup({ stage, requests, selectedRequestId, onSelectRequest }: Sta
             key={request.id}
             request={request}
             isSelected={selectedRequestId === request.id}
-            onClick={() => onSelectRequest(selectedRequestId === request.id ? null : request)}
+            onSelectRequest={onSelectRequest}
+            selectedRequestId={selectedRequestId}
           />
         ))}
 
@@ -247,16 +363,22 @@ function StageGroup({ stage, requests, selectedRequestId, onSelectRequest }: Sta
 interface RequestRowProps {
   request: EnrichedRequest;
   isSelected: boolean;
-  onClick: () => void;
+  onSelectRequest: (request: EnrichedRequest | null) => void;
+  selectedRequestId?: string;
 }
 
-function RequestRow({ request, isSelected, onClick }: RequestRowProps) {
+const RequestRow = React.memo(function RequestRow({ request, isSelected, onSelectRequest, selectedRequestId }: RequestRowProps) {
+  // Use useCallback to create a stable click handler
+  const handleClick = useCallback(() => {
+    onSelectRequest(selectedRequestId === request.id ? null : request);
+  }, [request, selectedRequestId, onSelectRequest]);
+
   return (
     <div
       className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
         isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : ''
       }`}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Status indicator */}
       <StatusDot request={request} />
@@ -295,7 +417,7 @@ function RequestRow({ request, isSelected, onClick }: RequestRowProps) {
       )}
     </div>
   );
-}
+});
 
 function StatusDot({ request }: { request: EnrichedRequest }) {
   if (request.error) {

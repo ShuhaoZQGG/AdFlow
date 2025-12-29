@@ -1,5 +1,7 @@
 import React from 'react';
 import Markdown from 'react-markdown';
+import { useRequestStore } from '@/contexts/RequestStoreContext';
+import type { HeaderBiddingSetup } from '@/lib/types';
 
 // Markdown component styles for consistent rendering
 const markdownComponents = {
@@ -69,6 +71,7 @@ export default function SessionSummaryPanel({
   onToggle,
 }: SessionSummaryProps) {
   const isStreaming = isLoading && streamingText.length > 0;
+  const headerBiddingAnalysis = useRequestStore((state) => state.getHeaderBiddingAnalysis());
 
   const handleAnalyze = (e: React.MouseEvent, tab: AITab, action: () => void) => {
     e.stopPropagation();
@@ -174,6 +177,11 @@ export default function SessionSummaryPanel({
       {/* Content */}
       {!collapsed && (
         <div className="px-3 pb-3 max-h-96 overflow-auto">
+          {/* Header Bidding Summary */}
+          {headerBiddingAnalysis && (
+            <HeaderBiddingSummary analysis={headerBiddingAnalysis} />
+          )}
+
           {error && (
             <div className="mb-3 p-2 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs">
               {error}
@@ -244,6 +252,67 @@ export default function SessionSummaryPanel({
               </div>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeaderBiddingSummary({ analysis }: { analysis: ReturnType<ReturnType<typeof useRequestStore>['getHeaderBiddingAnalysis']> }) {
+  if (!analysis || !analysis.latencyAnalysis) return null;
+
+  const setupLabels: Record<HeaderBiddingSetup, string> = {
+    prebid: 'Prebid.js',
+    'prebid-server': 'Prebid Server',
+    'other-header-bidding': 'Other Header Bidding',
+    'waterfall-only': 'Waterfall Only',
+    mixed: 'Mixed Setup',
+    unknown: 'Unknown',
+  };
+
+  const { overall } = analysis.latencyAnalysis;
+  const conflicts = analysis.conflicts || [];
+
+  return (
+    <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+          Header Bidding
+        </h3>
+        <span className="text-[10px] text-gray-500 dark:text-gray-400">
+          {setupLabels[analysis.setup]}
+        </span>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-3 text-xs">
+        <div>
+          <div className="text-gray-500 dark:text-gray-400">Bid Requests</div>
+          <div className="font-semibold text-gray-900 dark:text-gray-100">
+            {overall.totalBidRequests}
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500 dark:text-gray-400">Response Rate</div>
+          <div className="font-semibold text-gray-900 dark:text-gray-100">
+            {(overall.responseRate * 100).toFixed(1)}%
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500 dark:text-gray-400">Avg Latency</div>
+          <div className="font-semibold text-gray-900 dark:text-gray-100">
+            {overall.avgLatency > 0 ? `${Math.round(overall.avgLatency)}ms` : 'N/A'}
+          </div>
+        </div>
+      </div>
+
+      {conflicts.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-1 text-[10px] text-red-600 dark:text-red-400">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''} detected</span>
+          </div>
         </div>
       )}
     </div>
