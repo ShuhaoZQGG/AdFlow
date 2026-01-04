@@ -45,6 +45,9 @@ export interface RequestStore {
   toggleIssueTypeFilter: (issueType: IssueType) => void;
   toggleShowOnlyIssues: () => void;
   setSearchQuery: (query: string) => void;
+  setSearchQueryRegex: (enable: boolean) => void;
+  setPayloadSearchQuery: (query: string) => void;
+  setPayloadSearchRegex: (enable: boolean) => void;
   setPlacementFilter: (elementId: string | undefined) => void;
   setInspectedElement: (element: SelectedElement | null) => void;
   resetFilters: () => void;

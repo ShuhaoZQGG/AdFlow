@@ -5,6 +5,8 @@ import * as aiService from '@/lib/ai';
 import type { ChatMessage } from '@/lib/ai';
 import type { RequestStore } from '@/stores/types';
 import { generateHeaderBiddingAnalysis } from '@/lib/headerbidding';
+import { matchesPayloadSearch } from '@/lib/search/payloadSearch';
+import { parseQuery, matchesQueryOperators, matchesFreeText } from '@/lib/search/queryParser';
 
 // Helper to create a cache key from filtered request IDs and filters
 function createCacheKey(requestIds: string[], filters: FilterState): string {
@@ -31,6 +33,9 @@ const initialFilters: FilterState = {
   statusCodes: [],
   issueTypes: [],
   searchQuery: '',
+  searchQueryRegex: false,
+  payloadSearchQuery: '',
+  payloadSearchRegex: false,
   showOnlyIssues: false,
 };
 
@@ -156,6 +161,21 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
   setSearchQuery: (query) =>
     set((state) => ({
       filters: { ...state.filters, searchQuery: query },
+    })),
+
+  setSearchQueryRegex: (enable) =>
+    set((state) => ({
+      filters: { ...state.filters, searchQueryRegex: enable },
+    })),
+
+  setPayloadSearchQuery: (query) =>
+    set((state) => ({
+      filters: { ...state.filters, payloadSearchQuery: query },
+    })),
+
+  setPayloadSearchRegex: (enable) =>
+    set((state) => ({
+      filters: { ...state.filters, payloadSearchRegex: enable },
     })),
 
   setPlacementFilter: (elementId) =>
@@ -306,14 +326,24 @@ export const useRequestStore = create<SidepanelRequestStore>((set, get) => ({
         }
       }
 
-      // Search query
+      // Search query with advanced operators and regex support
       if (filters.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
-        const matchesUrl = request.url.toLowerCase().includes(query);
-        const matchesVendor = request.vendor?.name
-          .toLowerCase()
-          .includes(query);
-        if (!matchesUrl && !matchesVendor) {
+        const parsedQuery = parseQuery(filters.searchQuery);
+        
+        // Check operators first
+        if (!matchesQueryOperators(request, parsedQuery.operators)) {
+          return false;
+        }
+        
+        // Check free text (URL and vendor name)
+        if (!matchesFreeText(request, parsedQuery.freeText, filters.searchQueryRegex)) {
+          return false;
+        }
+      }
+
+      // Payload search
+      if (filters.payloadSearchQuery) {
+        if (!matchesPayloadSearch(request, filters.payloadSearchQuery, filters.payloadSearchRegex)) {
           return false;
         }
       }

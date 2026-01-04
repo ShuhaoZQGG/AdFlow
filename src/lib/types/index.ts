@@ -109,6 +109,9 @@ export interface FilterState {
   statusCodes: ('2xx' | '3xx' | '4xx' | '5xx' | 'error')[];
   issueTypes: IssueType[];
   searchQuery: string;
+  searchQueryRegex: boolean;  // Enable regex mode for main search
+  payloadSearchQuery: string;  // Search query for payloads
+  payloadSearchRegex: boolean; // Enable regex mode for payload search
   showOnlyIssues: boolean;
   placementFilter?: string;   // Filter by ad placement/slot elementId
   inspectedElement?: SelectedElement; // Filter by inspected DOM element
