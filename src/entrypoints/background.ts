@@ -99,8 +99,14 @@ export default defineBackground(async () => {
 
   // Broadcast message to DevTools panels
   function broadcastToDevTools(message: MessageType) {
-    chrome.runtime.sendMessage(message).catch(() => {
-      // DevTools panel might not be open, ignore errors
+    chrome.runtime.sendMessage(message).catch((err) => {
+      // DevTools panel might not be open, or receiving end doesn't exist
+      // This is expected and can be safely ignored
+      if (err?.message?.includes('Receiving end does not exist') || 
+          err?.message?.includes('Could not establish connection')) {
+        return; // Silently ignore connection errors
+      }
+      console.debug('[AdFlow BG] Error broadcasting to DevTools:', err);
     });
   }
 
@@ -605,6 +611,15 @@ export default defineBackground(async () => {
             },
             { frameId: frame.frameId },
             (response) => {
+              // Handle Chrome runtime errors gracefully
+              if (chrome.runtime.lastError) {
+                // Tab or frame might not exist anymore, ignore
+                responsesReceived++;
+                if (responsesReceived === totalFrames) {
+                  sendResponse({ success: foundInAnyFrame, elementInfo: response?.elementInfo });
+                }
+                return;
+              }
               responsesReceived++;
               if (response?.success) {
                 foundInAnyFrame = true;
@@ -628,7 +643,13 @@ export default defineBackground(async () => {
             chrome.tabs.sendMessage(
               message.tabId!,
               { type: 'CLEAR_HIGHLIGHT' },
-              { frameId: frame.frameId }
+              { frameId: frame.frameId },
+              () => {
+                // Ignore errors - tab/frame might not exist
+                if (chrome.runtime.lastError) {
+                  // Silently ignore connection errors
+                }
+              }
             );
           });
         }
@@ -645,7 +666,13 @@ export default defineBackground(async () => {
             chrome.tabs.sendMessage(
               message.tabId!,
               { type: 'CLEAR_ALL_HIGHLIGHTS' },
-              { frameId: frame.frameId }
+              { frameId: frame.frameId },
+              () => {
+                // Ignore errors - tab/frame might not exist
+                if (chrome.runtime.lastError) {
+                  // Silently ignore connection errors
+                }
+              }
             );
           });
         }
@@ -676,6 +703,11 @@ export default defineBackground(async () => {
         { type: 'START_ELEMENT_PICKER' },
         { frameId: 0 },
         (response) => {
+          if (chrome.runtime.lastError) {
+            // Tab might not exist or content script not loaded
+            sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            return;
+          }
           sendResponse(response || { success: false });
         }
       );
@@ -690,6 +722,11 @@ export default defineBackground(async () => {
         { type: 'STOP_ELEMENT_PICKER' },
         { frameId: 0 },
         (response) => {
+          if (chrome.runtime.lastError) {
+            // Tab might not exist or content script not loaded
+            sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            return;
+          }
           sendResponse(response || { success: false });
         }
       );

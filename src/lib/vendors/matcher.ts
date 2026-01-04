@@ -150,7 +150,14 @@ function parseQueryParams(url: string): Map<string, string> {
       for (const pair of pairs) {
         const [key, value] = pair.split('=');
         if (key && value) {
-          params.set(decodeURIComponent(key).toLowerCase(), decodeURIComponent(value).toLowerCase());
+          try {
+            const decodedKey = decodeURIComponent(key);
+            const decodedValue = decodeURIComponent(value);
+            params.set(decodedKey.toLowerCase(), decodedValue.toLowerCase());
+          } catch {
+            // If decoding fails, use raw values
+            params.set(key.toLowerCase(), value.toLowerCase());
+          }
         }
       }
     }
@@ -208,7 +215,14 @@ export function matchRequestType(url: string, vendor: Vendor, payload?: string |
         for (const pair of pairs) {
           const [key, value] = pair.split('=');
           if (key && value) {
-            payloadParams.set(decodeURIComponent(key).toLowerCase(), decodeURIComponent(value).toLowerCase());
+            try {
+              const decodedKey = decodeURIComponent(key);
+              const decodedValue = decodeURIComponent(value);
+              payloadParams.set(decodedKey.toLowerCase(), decodedValue.toLowerCase());
+            } catch {
+              // If decoding fails, use raw values
+              payloadParams.set(key.toLowerCase(), value.toLowerCase());
+            }
           }
         }
         const typeFromPayload = matchTypeFromParams(payloadParams);

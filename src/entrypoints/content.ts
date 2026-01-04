@@ -32,6 +32,36 @@ export default defineContentScript({
   runAt: 'document_start',
   allFrames: true,
   main() {
+    // Helper function to check if extension context is still valid
+    function isExtensionContextValid(): boolean {
+      try {
+        // If runtime.id is undefined, the extension context has been invalidated
+        return chrome.runtime.id !== undefined;
+      } catch {
+        return false;
+      }
+    }
+
+    // Helper function to safely send messages with context validation
+    function safeSendMessage(message: any): Promise<void> {
+      if (!isExtensionContextValid()) {
+        return Promise.reject(new Error('Extension context invalidated'));
+      }
+      try {
+        return chrome.runtime.sendMessage(message).catch((err) => {
+          // If context was invalidated during the call, handle gracefully
+          if (err?.message?.includes('Extension context invalidated') || 
+              err?.message?.includes('Receiving end does not exist')) {
+            console.debug('[AdFlow Content] Extension context invalidated, ignoring message');
+            return Promise.resolve();
+          }
+          throw err;
+        });
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+
     // Store slot mappings received from injected script
     let slotMappings: SlotMappings = { slots: [], timestamp: 0 };
 
@@ -62,12 +92,16 @@ export default defineContentScript({
           console.log('[AdFlow Content] Merged to', slotMappings.slots.length, 'total slots');
 
           // Forward to background script
-          chrome.runtime.sendMessage({
+          safeSendMessage({
             type: 'SLOT_MAPPINGS_UPDATED',
             payload: slotMappings,
           }).then(() => {
             console.log('[AdFlow Content] Forwarded to background successfully');
           }).catch((err) => {
+            // Silently ignore if context is invalidated
+            if (err?.message?.includes('Extension context invalidated')) {
+              return;
+            }
             console.warn('[AdFlow Content] Failed to forward to background:', err);
           });
         }
@@ -85,7 +119,14 @@ export default defineContentScript({
     const highlightObservers = new WeakMap<HTMLElement, MutationObserver>();
 
     // Listen for messages from background script
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Note: This listener will automatically stop working when extension context is invalidated
+    try {
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        // Check context validity at the start of each message handler
+        if (!isExtensionContextValid()) {
+          console.debug('[AdFlow Content] Extension context invalidated, ignoring message');
+          return false;
+        }
       if (message.type === 'HIGHLIGHT_ELEMENT') {
         const { elementId, slotId } = message.payload;
         const result = highlightElement(elementId, slotId);
@@ -106,7 +147,12 @@ export default defineContentScript({
         sendResponse({ success: true });
       }
       return true;
-    });
+      });
+    } catch (err) {
+      // If extension context is invalidated during setup, log and continue
+      // The content script can still function for DOM manipulation
+      console.debug('[AdFlow Content] Could not set up message listener:', err);
+    }
 
     // ===== Element Picker Functions =====
 
@@ -127,9 +173,11 @@ export default defineContentScript({
       }
       
       // Notify background to clear any existing inspected element
-      chrome.runtime.sendMessage({
+      safeSendMessage({
         type: 'CLEAR_INSPECTED_ELEMENT',
-      }).catch(() => {});
+      }).catch(() => {
+        // Silently ignore if context is invalidated
+      });
       
       // Add class to body to disable iframe interactions
       document.body.classList.add('adflow-picker-active');
@@ -453,7 +501,7 @@ export default defineContentScript({
       }
 
       // Send to background script to update filters
-      chrome.runtime.sendMessage({
+      safeSendMessage({
         type: 'ELEMENT_SELECTED',
         payload: elementInfo,
       })
@@ -462,7 +510,10 @@ export default defineContentScript({
           isSelecting = false;
         })
         .catch(err => {
-          console.warn('[AdFlow Content] Failed to send element selection:', err);
+          // Silently ignore if context is invalidated
+          if (!err?.message?.includes('Extension context invalidated')) {
+            console.warn('[AdFlow Content] Failed to send element selection:', err);
+          }
           // Reset flag if send failed so user can try again
           isSelecting = false;
         });
@@ -492,9 +543,11 @@ export default defineContentScript({
 
         // Notify background that picker was stopped
         // Note: We keep the last selected element highlighted
-        chrome.runtime.sendMessage({
+        safeSendMessage({
           type: 'ELEMENT_PICKER_STOPPED',
-        }).catch(() => {});
+        }).catch(() => {
+          // Silently ignore if context is invalidated
+        });
       }
     }
 
@@ -906,16 +959,32 @@ export default defineContentScript({
 // Inject script into page context to access GAM/Prebid APIs
 // Uses chrome.runtime.getURL to bypass CSP restrictions on inline scripts
 function injectSlotCollector() {
-  const script = document.createElement('script');
-  script.src = chrome.runtime.getURL('/injected.js');
-  script.id = 'adflow-slot-collector';
+  try {
+    // Check if extension context is still valid before using chrome.runtime.getURL
+    if (!chrome.runtime.id) {
+      console.debug('[AdFlow Content] Extension context invalidated, skipping script injection');
+      return;
+    }
 
-  const target = document.head || document.documentElement;
-  if (target) {
-    target.appendChild(script);
-    // Remove script element after it loads (keeps DOM clean)
-    script.onload = () => {
-      script.remove();
-    };
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('/injected.js');
+    script.id = 'adflow-slot-collector';
+
+    const target = document.head || document.documentElement;
+    if (target) {
+      target.appendChild(script);
+      // Remove script element after it loads (keeps DOM clean)
+      script.onload = () => {
+        script.remove();
+      };
+      // Handle errors during script loading
+      script.onerror = () => {
+        console.warn('[AdFlow Content] Failed to load injected script');
+        script.remove();
+      };
+    }
+  } catch (err) {
+    // If extension context is invalidated, chrome.runtime.getURL will throw
+    console.debug('[AdFlow Content] Extension context invalidated during script injection');
   }
 }

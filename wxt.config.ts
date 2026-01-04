@@ -28,14 +28,9 @@ export default defineConfig({
     // Host permissions: Required to intercept network requests from any website
     // Adtech requests can originate from hundreds of different domains (SSPs, DSPs, verification services)
     // We need broad access to capture and analyze advertising-related HTTP traffic for debugging
+    // Note: <all_urls> already covers all domains including AI service endpoints, so optional_host_permissions
+    // would be redundant. AI features are controlled via user settings, not permissions.
     host_permissions: ['<all_urls>'],
-    
-    // Optional host permissions for AI features (user must enable in settings)
-    // These are declared for transparency but requests only happen when user opts in
-    optional_host_permissions: [
-      'https://api.anthropic.com/*',
-      'https://adflow-api.adflow.workers.dev/*',
-    ],
     side_panel: {
       default_path: 'sidepanel.html',
     },
