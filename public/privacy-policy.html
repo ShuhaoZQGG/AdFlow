@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - AdFlow Inspector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+            min-height: 100vh;
+        }
+
+        header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .last-updated {
+            background: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        h2 {
+            color: #4F46E5;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #333;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: #444;
+        }
+
+        .highlight {
+            background: #FEF3C7;
+            padding: 15px;
+            border-left: 4px solid #F59E0B;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box {
+            background: #EFF6FF;
+            padding: 15px;
+            border-left: 4px solid #3B82F6;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #FEE2E2;
+            padding: 15px;
+            border-left: 4px solid #EF4444;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        strong {
+            color: #1a1a1a;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .contact-section {
+            background: #F9FAFB;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 40px;
+        }
+
+        a {
+            color: #4F46E5;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Privacy Policy</h1>
+            <p class="subtitle">AdFlow Inspector Browser Extension</p>
+        </header>
+
+        <div class="last-updated">
+            <strong>Last Updated:</strong> January 4, 2026
+        </div>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                AdFlow Inspector ("we," "our," or "the extension") is a browser extension designed for developers, 
+                ad operations teams, and technical professionals to debug and analyze advertising technology (adtech) 
+                network requests. This privacy policy explains how we handle data when you use AdFlow Inspector.
+            </p>
+
+            <div class="highlight">
+                <strong>Our Core Privacy Principle:</strong> Your data stays on your device by default. We do not 
+                collect, store, or transmit any of your browsing data to our servers unless you explicitly enable 
+                optional AI-powered features.
+            </div>
+        </section>
+
+        <section>
+            <h2>1. Data Collection and Usage</h2>
+
+            <h3>1.1 What Data the Extension Accesses</h3>
+            <p>
+                To provide debugging functionality, AdFlow Inspector intercepts and analyzes network requests made 
+                by websites you visit. This includes:
+            </p>
+            <ul>
+                <li><strong>URLs and domains</strong> of network requests</li>
+                <li><strong>HTTP headers</strong> (both request and response)</li>
+                <li><strong>Request and response payloads</strong> (body content)</li>
+                <li><strong>Timing information</strong> (when requests started, duration, etc.)</li>
+                <li><strong>Page DOM elements</strong> (when using the element picker feature)</li>
+            </ul>
+
+            <h3>1.2 How Data is Stored</h3>
+            <p>
+                <strong>All captured data is stored locally in your browser</strong> using Chrome's built-in storage APIs. 
+                Specifically:
+            </p>
+            <ul>
+                <li>Network request data is stored in browser memory (RAM) while the extension is active</li>
+                <li>User preferences and settings are stored in <code>chrome.storage.local</code></li>
+                <li>Data is cleared when you close the browser tab or navigate to a new page</li>
+                <li>No data is persisted across browser sessions unless explicitly saved by you using the export feature</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Important:</strong> We do not have access to your locally stored data. It never leaves your device 
+                unless you explicitly use AI features (see section 2 below).
+            </div>
+
+            <h3>1.3 Data We Do NOT Collect</h3>
+            <ul>
+                <li>Personal browsing history</li>
+                <li>Passwords or authentication credentials</li>
+                <li>Credit card or payment information</li>
+                <li>Personal identification information (PII)</li>
+                <li>Analytics or usage telemetry</li>
+                <li>Cookies from websites you visit</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>2. AI-Powered Features (Optional)</h2>
+            <p>
+                AdFlow Inspector offers optional AI-powered analysis features to help explain network requests and 
+                detect issues. <strong>These features are opt-in and disabled by default.</strong>
+            </p>
+
+            <h3>2.1 Two Operation Modes</h3>
+
+            <h4>Direct Mode (Bring Your Own API Key)</h4>
+            <ul>
+                <li>You provide your own Anthropic Claude API key</li>
+                <li>The extension sends request data directly from your browser to Anthropic's API 
+                    (<code>https://api.anthropic.com</code>)</li>
+                <li>Your API key is stored locally in <code>chrome.storage.local</code> on your device</li>
+                <li>We never see your API key or the data you send to Anthropic</li>
+                <li>You are subject to <a href="https://www.anthropic.com/legal/privacy" target="_blank">Anthropic's Privacy Policy</a></li>
+            </ul>
+
+            <h4>Backend Mode (Our Proxy Server)</h4>
+            <ul>
+                <li>Request data is sent to our backend proxy server (<code>https://adflow-api.adflow.workers.dev</code>)</li>
+                <li>Our server forwards the request to Anthropic's API using our API key</li>
+                <li>We <strong>do not log, store, or retain</strong> any of the data sent to our backend</li>
+                <li>Data is processed in-memory only and discarded immediately after generating the response</li>
+                <li>Our backend is hosted on Cloudflare Workers (covered by 
+                    <a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Cloudflare's Privacy Policy</a>)</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>Data Sent to AI Services:</strong> When you use AI features, the following data from network 
+                requests may be sent to Anthropic's API:
+                <ul style="margin-top: 10px;">
+                    <li>Request URLs and domains</li>
+                    <li>Decoded request/response payloads</li>
+                    <li>HTTP headers (sanitized of sensitive tokens when possible)</li>
+                    <li>Vendor and request type metadata</li>
+                </ul>
+                <strong>This data may contain advertising IDs, bid prices, or other ad-related information.</strong> 
+                Do not use AI features if you are analyzing requests containing sensitive or confidential data.
+            </div>
+
+            <h3>2.2 Disabling AI Features</h3>
+            <p>
+                You can disable AI features at any time by:
+            </p>
+            <ul>
+                <li>Opening the extension settings</li>
+                <li>Removing your API key (Direct Mode)</li>
+                <li>Switching AI mode to "Disabled"</li>
+            </ul>
+            <p>
+                The extension will continue to function normally for request capture and analysis without AI features.
+            </p>
+        </section>
+
+        <section>
+            <h2>3. Permissions Explanation</h2>
+            <p>
+                AdFlow Inspector requires the following browser permissions to function. Here's why we need each one:
+            </p>
+
+            <h3>3.1 <code>webRequest</code> Permission</h3>
+            <p>
+                Allows the extension to intercept and inspect network requests made by web pages. This is the core 
+                functionality that enables debugging of adtech requests.
+            </p>
+
+            <h3>3.2 <code>&lt;all_urls&gt;</code> Host Permission</h3>
+            <p>
+                Required to capture network requests from any website you visit. Advertising requests can come from 
+                hundreds of different domains, so we need broad access to analyze them effectively.
+            </p>
+
+            <h3>3.3 <code>storage</code> Permission</h3>
+            <p>
+                Used to save your preferences, settings, and optionally your AI API key locally on your device.
+            </p>
+
+            <h3>3.4 <code>tabs</code> and <code>webNavigation</code> Permissions</h3>
+            <p>
+                Allows the extension to track which browser tab each request belongs to and reset capture when you 
+                navigate to a new page.
+            </p>
+
+            <h3>3.5 <code>scripting</code> Permission</h3>
+            <p>
+                Enables the element picker feature that lets you select ad slots on the page to see related network requests.
+            </p>
+
+            <h3>3.6 <code>sidePanel</code> Permission</h3>
+            <p>
+                Displays the extension's user interface in Chrome's side panel for easier debugging.
+            </p>
+        </section>
+
+        <section>
+            <h2>4. Data Sharing and Third Parties</h2>
+            
+            <h3>4.1 Third-Party Services</h3>
+            <p>
+                AdFlow Inspector may interact with the following third-party services only when you explicitly enable AI features:
+            </p>
+            <ul>
+                <li><strong>Anthropic Claude API</strong> - AI language model for request analysis 
+                    (<a href="https://www.anthropic.com/legal/privacy" target="_blank">Privacy Policy</a>)</li>
+                <li><strong>Cloudflare Workers</strong> - Hosting for our optional backend proxy 
+                    (<a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Privacy Policy</a>)</li>
+            </ul>
+
+            <h3>4.2 No Data Selling</h3>
+            <p>
+                <strong>We do not sell, rent, or trade your data to third parties.</strong> We do not monetize user data 
+                in any way.
+            </p>
+
+            <h3>4.3 No Analytics or Tracking</h3>
+            <p>
+                AdFlow Inspector does not include any analytics, tracking, or telemetry. We do not collect information 
+                about how you use the extension.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. User Control and Data Deletion</h2>
+
+            <h3>5.1 Viewing Your Data</h3>
+            <p>
+                All data captured by the extension is visible directly in the extension's interface. You can review 
+                network requests, headers, and payloads at any time.
+            </p>
+
+            <h3>5.2 Deleting Your Data</h3>
+            <p>
+                You have complete control over your data:
+            </p>
+            <ul>
+                <li><strong>Clear current session:</strong> Click the "Clear" button in the extension to remove all 
+                    captured requests from memory</li>
+                <li><strong>Close tab:</strong> Request data for a tab is automatically cleared when you close the tab</li>
+                <li><strong>Uninstall extension:</strong> Removes all stored settings and data from your browser</li>
+                <li><strong>Remove API key:</strong> Delete your stored API key from the settings panel at any time</li>
+            </ul>
+
+            <h3>5.3 Exporting Your Data</h3>
+            <p>
+                The extension allows you to export captured requests as JSON or PDF for your own records. This export 
+                is saved to your local device only.
+            </p>
+        </section>
+
+        <section>
+            <h2>6. Security</h2>
+
+            <h3>6.1 API Key Storage</h3>
+            <p>
+                If you choose to use Direct Mode with your own API key:
+            </p>
+            <ul>
+                <li>API keys are stored in Chrome's secure local storage (<code>chrome.storage.local</code>)</li>
+                <li>Keys are never transmitted to our servers</li>
+                <li>We recommend using API keys with minimal permissions or spending limits</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Security Note:</strong> While <code>chrome.storage.local</code> is more secure than regular 
+                browser storage, API keys stored this way are still accessible to the extension itself. For maximum 
+                security, consider using Backend Mode where you don't need to provide your own API key.
+            </div>
+
+            <h3>6.2 Secure Connections</h3>
+            <p>
+                All external communications (to Anthropic API or our backend) use HTTPS encrypted connections.
+            </p>
+
+            <h3>6.3 No Backend Data Retention</h3>
+            <p>
+                When using Backend Mode, our proxy server:
+            </p>
+            <ul>
+                <li>Processes requests in-memory only</li>
+                <li>Does not write data to disk or databases</li>
+                <li>Does not retain logs of request content</li>
+                <li>Discards all data immediately after generating responses</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>7. Children's Privacy</h2>
+            <p>
+                AdFlow Inspector is a developer tool not intended for use by children under 13. We do not knowingly 
+                collect information from children.
+            </p>
+        </section>
+
+        <section>
+            <h2>8. Changes to This Policy</h2>
+            <p>
+                We may update this privacy policy from time to time. Changes will be reflected by updating the 
+                "Last Updated" date at the top of this page. For material changes, we will notify users through 
+                the extension's interface or Chrome Web Store listing.
+            </p>
+            <p>
+                Continued use of the extension after policy changes constitutes acceptance of the updated policy.
+            </p>
+        </section>
+
+        <section>
+            <h2>9. Legal Basis for Data Processing (GDPR)</h2>
+            <p>
+                For users in the European Economic Area (EEA), our legal basis for processing data is:
+            </p>
+            <ul>
+                <li><strong>Legitimate Interest:</strong> Providing debugging functionality for adtech requests</li>
+                <li><strong>Consent:</strong> For optional AI features, we rely on your explicit consent when you 
+                    enable these features and provide an API key or choose to use our backend</li>
+            </ul>
+            <p>
+                You have the right to withdraw consent at any time by disabling AI features or uninstalling the extension.
+            </p>
+        </section>
+
+        <section class="contact-section">
+            <h2>10. Contact Information</h2>
+            <p>
+                If you have questions, concerns, or requests regarding this privacy policy or how we handle data, 
+                please contact us:
+            </p>
+            <ul>
+                <li><strong>Email:</strong> <a href="mailto:privacy@adflow-inspector.dev">privacy@adflow-inspector.dev</a></li>
+                <li><strong>GitHub Issues:</strong> <a href="https://github.com/yourusername/adflow-inspector/issues" target="_blank">GitHub Repository</a></li>
+            </ul>
+            
+            <p style="margin-top: 20px;">
+                <strong>Data Protection Rights:</strong> If you believe we are not handling your data in accordance 
+                with this policy, you have the right to lodge a complaint with your local data protection authority.
+            </p>
+        </section>
+
+        <footer>
+            <p>© 2026 AdFlow Inspector. All rights reserved.</p>
+            <p style="margin-top: 10px;">
+                This privacy policy is provided in good faith. For the most current version, please visit our website.
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
+

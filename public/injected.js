@@ -6,7 +6,7 @@
 
   var POLL_INTERVAL = 1000;
   var lastMappingsHash = '';
-  var DEBUG = true; // Set to true to enable console logging
+  var DEBUG = false; // Set to true to enable console logging during development
 
   function log() {
     if (DEBUG) console.log.apply(console, ['[AdFlow]'].concat(Array.prototype.slice.call(arguments)));

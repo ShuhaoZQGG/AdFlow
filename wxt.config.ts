@@ -25,7 +25,17 @@ export default defineConfig({
       'alarms',
       'sidePanel',
     ],
+    // Host permissions: Required to intercept network requests from any website
+    // Adtech requests can originate from hundreds of different domains (SSPs, DSPs, verification services)
+    // We need broad access to capture and analyze advertising-related HTTP traffic for debugging
     host_permissions: ['<all_urls>'],
+    
+    // Optional host permissions for AI features (user must enable in settings)
+    // These are declared for transparency but requests only happen when user opts in
+    optional_host_permissions: [
+      'https://api.anthropic.com/*',
+      'https://adflow-api.adflow.workers.dev/*',
+    ],
     side_panel: {
       default_path: 'sidepanel.html',
     },
@@ -37,4 +47,20 @@ export default defineConfig({
       },
     ],
   },
+  vite: () => ({
+    build: {
+      // Remove console logs in production builds
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true, // Remove all console.* statements
+          drop_debugger: true, // Remove debugger statements
+          pure_funcs: ['console.log', 'console.debug', 'console.info', 'console.warn'], // Remove specific console methods
+        },
+        format: {
+          comments: false, // Remove all comments
+        },
+      },
+    },
+  }),
 });
