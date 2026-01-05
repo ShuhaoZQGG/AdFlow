@@ -1,6 +1,6 @@
-# Hosting AdFlow Inspector Website
+# Hosting AdFlow Network Inspector Website
 
-This guide explains how to host the AdFlow Inspector landing page and privacy policy.
+This guide explains how to host the AdFlow Network Inspector landing page and privacy policy.
 
 ## Quick Start - GitHub Pages (Recommended)
 
@@ -99,7 +99,7 @@ To make your landing page more compelling:
    ```html
    <!-- Replace the placeholder div -->
    <div class="screenshot-container">
-       <img src="screenshots/main-interface.png" alt="AdFlow Inspector Interface">
+       <img src="screenshots/main-interface.png" alt="AdFlow Network Inspector Interface">
    </div>
    ```
 
@@ -222,5 +222,5 @@ If you encounter issues:
 
 ## License
 
-This website template is part of AdFlow Inspector and can be customized for your needs.
+This website template is part of AdFlow Network Inspector and can be customized for your needs.
 

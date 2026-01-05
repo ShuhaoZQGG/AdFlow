@@ -5,7 +5,7 @@ import { detectAdFlowStage, extractSlotId } from '@/lib/adflow';
 import type { EnrichedRequest, MessageType, Issue, SlotInfo, SelectedElement } from '@/lib/types';
 
 export default defineBackground(async () => {
-  console.log('AdFlow Inspector: Background service worker started');
+  console.log('AdFlow Network Inspector: Background service worker started');
 
   // Configure side panel to open on action click (icon click)
   if (chrome.sidePanel) {

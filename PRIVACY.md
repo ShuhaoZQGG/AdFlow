@@ -1,10 +1,10 @@
-# Privacy Policy - AdFlow Inspector
+# Privacy Policy - AdFlow Network Inspector
 
 **Last Updated:** January 4, 2026
 
 ## Overview
 
-AdFlow Inspector is a browser extension designed for developers, ad operations teams, and technical professionals to debug and analyze advertising technology (adtech) network requests.
+AdFlow Network Inspector is a browser extension designed for developers, ad operations teams, and technical professionals to debug and analyze advertising technology (adtech) network requests.
 
 **Core Privacy Principle:** Your data stays on your device by default. We do not collect, store, or transmit any of your browsing data to our servers unless you explicitly enable optional AI-powered features.
 
@@ -12,7 +12,7 @@ AdFlow Inspector is a browser extension designed for developers, ad operations t
 
 ### 1.1 What Data the Extension Accesses
 
-To provide debugging functionality, AdFlow Inspector intercepts and analyzes network requests:
+To provide debugging functionality, AdFlow Network Inspector intercepts and analyzes network requests:
 
 - **URLs and domains** of network requests
 - **HTTP headers** (both request and response)
@@ -102,7 +102,7 @@ Only when AI features are enabled:
 
 ### 4.3 No Analytics or Tracking
 
-AdFlow Inspector includes **no analytics, tracking, or telemetry**.
+AdFlow Network Inspector includes **no analytics, tracking, or telemetry**.
 
 ## 5. User Control and Data Deletion
 
@@ -137,7 +137,7 @@ Our proxy server:
 
 ## 7. Children's Privacy
 
-AdFlow Inspector is a developer tool not intended for children under 13. We do not knowingly collect information from children.
+AdFlow Network Inspector is a developer tool not intended for children under 13. We do not knowingly collect information from children.
 
 ## 8. Changes to This Policy
 
@@ -160,5 +160,5 @@ You may withdraw consent anytime by disabling AI or uninstalling.
 
 ---
 
-© 2026 AdFlow Inspector. All rights reserved.
+© 2026 AdFlow Network Inspector. All rights reserved.
 

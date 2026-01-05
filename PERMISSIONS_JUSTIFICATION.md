@@ -1,10 +1,10 @@
-# Permissions Justification for AdFlow Inspector
+# Permissions Justification for AdFlow Network Inspector
 
-This document explains why AdFlow Inspector requires each permission. This information should be provided to Chrome Web Store reviewers during the submission process.
+This document explains why AdFlow Network Inspector requires each permission. This information should be provided to Chrome Web Store reviewers during the submission process.
 
 ## Extension Purpose
 
-**AdFlow Inspector** is a developer tool for debugging and analyzing advertising technology (adtech) network requests. It helps ad operations teams, publisher engineers, and technical professionals troubleshoot header bidding implementations, identify discrepancies, and optimize ad performance.
+**AdFlow Network Inspector** is a developer tool for debugging and analyzing advertising technology (adtech) network requests. It helps ad operations teams, publisher engineers, and technical professionals troubleshoot header bidding implementations, identify discrepancies, and optimize ad performance.
 
 **Target Audience:** Professional developers, ad operations specialists, and technical teams working with programmatic advertising.
 

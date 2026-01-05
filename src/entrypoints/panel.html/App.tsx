@@ -97,7 +97,7 @@ export default function App() {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#252526]">
         <div className="flex items-center gap-3">
-          <h1 className="font-semibold text-sm">AdFlow Inspector</h1>
+          <h1 className="font-semibold text-sm">AdFlow Network Inspector</h1>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {requests.length} request{requests.length !== 1 ? 's' : ''}
           </span>

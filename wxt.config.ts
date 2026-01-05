@@ -4,7 +4,7 @@ export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'AdFlow Inspector',
+    name: 'AdFlow Network Inspector',
     description: 'Debug adtech network requests with vendor recognition and payload decoding',
     version: '1.0.0',
     icons: {
@@ -14,7 +14,7 @@ export default defineConfig({
       128: '/icons/icon.svg',
     },
     action: {
-      default_title: 'AdFlow Inspector - Click to open side panel',
+      default_title: 'AdFlow Network Inspector - Click to open side panel',
     },
     permissions: [
       'webRequest',

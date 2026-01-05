@@ -1,7 +1,7 @@
-AdFlow Inspector
+AdFlow Network Inspector
 Product & Technical Specification  |  v1.0 Draft
 Executive Summary
-AdFlow Inspector is a browser extension that transforms the chaotic world of adtech network requests into a clear, understandable narrative. It intercepts, categorizes, and explains HTTP traffic in real-time—turning waterfall charts and HAR files into actionable insights that both engineers and non-technical stakeholders can understand.
+AdFlow Network Inspector is a browser extension that transforms the chaotic world of adtech network requests into a clear, understandable narrative. It intercepts, categorizes, and explains HTTP traffic in real-time—turning waterfall charts and HAR files into actionable insights that both engineers and non-technical stakeholders can understand.
 Target Users: Ad Operations teams, Publisher engineers, SSP/DSP integration specialists, Adtech QA engineers, and Technical Account Managers debugging live campaigns.
 Core Value Proposition: Reduce debugging time from hours to minutes by providing instant, contextual explanations of what's happening in the ad request chain—and what's going wrong.
 Problem Statement

@@ -1,4 +1,4 @@
-// Export functionality for AdFlow Inspector
+// Export functionality for AdFlow Network Inspector
 
 import { jsPDF } from 'jspdf';
 import type { EnrichedRequest, AdFlow } from '../types';
@@ -85,7 +85,7 @@ export async function exportToPDF(
   // Title
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('AdFlow Inspector Report', margin, y);
+  doc.text('AdFlow Network Inspector Report', margin, y);
   y += 10;
 
   // Metadata
