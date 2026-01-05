@@ -14,6 +14,7 @@ const CATEGORIES: VendorCategory[] = [
   'Identity',
   'CDN',
   'AdServer',
+  'Native',
   'Other',
 ];
 
