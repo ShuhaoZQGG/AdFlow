@@ -6,12 +6,12 @@ export default defineConfig({
   manifest: {
     name: 'AdFlow Network Inspector',
     description: 'Debug adtech network requests with vendor recognition and payload decoding',
-    version: '1.0.0',
+    version: '1.0.1',
     icons: {
-      16: '/icons/icon.svg',
-      32: '/icons/icon.svg',
-      48: '/icons/icon.svg',
-      128: '/icons/icon.svg',
+      16: '/icons/icon-16.png',
+      32: '/icons/icon-32.png',
+      48: '/icons/icon-48.png',
+      128: '/icons/icon-128.png',
     },
     action: {
       default_title: 'AdFlow Network Inspector - Click to open side panel',
